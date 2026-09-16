@@ -21,7 +21,7 @@ class AudioEngine {
     this.bgmOn = true;
     this.bgm = null;
     this.timer = null;
-    this.tempo = 150;
+    this.tempo = 165;
   }
 
   ensure() {
@@ -130,7 +130,7 @@ class AudioEngine {
 
   // ---- BGM sequencer --------------------------------------------------------
   setLevel(level) {
-    this.tempo = Math.min(200, 145 + (level - 1) * 4);
+    this.tempo = Math.min(210, 165 + (level - 1) * 4);
   }
 
   startBgm(level) {

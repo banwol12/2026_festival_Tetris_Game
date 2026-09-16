@@ -22,7 +22,7 @@
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
-  const settings = Object.assign({ sfx: true, bgm: true, level: 1, name: '' }, load(LS_SETTINGS, {}));
+  const settings = Object.assign({ sfx: true, bgm: true, name: '' }, load(LS_SETTINGS, {}));
   let ranking = load(LS_RANK, []);
   let pendingResult = null;
 
@@ -33,6 +33,7 @@
   const renderer = new Renderer(game, $('#board'), $('#hold'), $('#next'));
 
   const el = {
+    arena: $('#arena'),
     stage: $('#stage'),
     wrap: $('#board-wrap'),
     fx: $('#fx'),
@@ -43,7 +44,6 @@
     best: $('#best'),
     overlay: $('#overlay'),
     screens: { start: $('#screen-start'), pause: $('#screen-pause'), over: $('#screen-over') },
-    levelPicker: $('#level-picker'),
     startBtn: $('#btn-start'),
     resumeBtn: $('#btn-resume'),
     restartBtn: $('#btn-restart'),
@@ -52,6 +52,7 @@
     overScore: $('#over-score'),
     overLines: $('#over-lines'),
     overLevel: $('#over-level'),
+    overTime: $('#over-time'),
     nameForm: $('#name-form'),
     nameInput: $('#name-input'),
     overBoard: $('#over-board'),
@@ -64,16 +65,22 @@
 
   // ---- layout ---------------------------------------------------------------
   function resize() {
-    const rect = el.stage.getBoundingClientRect();
-    const pad = 6;
+    const rect = el.arena.getBoundingClientRect();
+    const pad = 8;
     const cell = Math.max(8, Math.floor(Math.min(
       (rect.height - pad) / CFG.ROWS,
-      (rect.width - pad) / CFG.COLS
+      (rect.width * 0.42) / CFG.COLS
     )));
-    const pcell = Math.max(14, Math.min(26, Math.round(cell * 0.62)));
+    const pcell = Math.max(12, Math.min(48, Math.round(cell * 0.78)));
+    document.documentElement.style.setProperty('--cell', cell + 'px');
     renderer.resize(cell, pcell);
     renderer.draw(0);
     renderer.drawPreviews();
+  }
+
+  function fmtTime(ms) {
+    const sec = Math.floor(ms / 1000);
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   }
 
   // ---- screens --------------------------------------------------------------
@@ -121,7 +128,7 @@
     const sec = Math.floor(game.stats.time / 1000);
     if (sec !== hud.time) {
       hud.time = sec;
-      el.time.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+      el.time.textContent = fmtTime(game.stats.time);
     }
     const best = Math.max(bestScore(), game.score);
     if (best !== hud.best) { hud.best = best; el.best.textContent = fmt(best); }
@@ -154,7 +161,7 @@
   function startGame() {
     audio.ensure();
     audio.resetBgm();
-    game.start(settings.level);
+    game.start(1);
     showScreen(null);
     audio.startBgm(game.level);
     el.pauseBtn.textContent = '⏸';
@@ -225,6 +232,9 @@
     audio.clear(count, tspin);
     renderer.flash = count === 4 || tspin ? 1 : 0.45;
     if (count === 4) shake(7);
+    el.wrap.classList.remove('pulse');
+    void el.wrap.offsetWidth;
+    el.wrap.classList.add('pulse');
   });
   game.on('score', ({ points, lines, tspin, b2b, combo }) => {
     let label = '';
@@ -239,7 +249,7 @@
   game.on('levelup', (lv) => {
     audio.levelUp();
     audio.setLevel(lv);
-    pop(`LEVEL ${lv}`, 'level');
+    pop(`LEVEL ${lv} · SPEED UP`, 'level');
     bump(el.level);
   });
   game.on('gameover', (r) => {
@@ -248,6 +258,7 @@
     el.overScore.textContent = fmt(r.score);
     el.overLines.textContent = r.lines;
     el.overLevel.textContent = r.level;
+    el.overTime.textContent = fmtTime(r.stats.time);
     const q = qualifies(r.score);
     pendingResult = q ? r : null;
     el.nameForm.hidden = !q;
@@ -287,28 +298,6 @@
       else el.nameForm.dispatchEvent(new Event('submit', { cancelable: true }));
     }
   });
-
-  function buildLevelPicker() {
-    el.levelPicker.innerHTML = '';
-    for (let i = 1; i <= CFG.MAX_START_LEVEL; i++) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'lv';
-      b.textContent = i;
-      b.dataset.level = i;
-      b.addEventListener('click', () => setLevel(i));
-      el.levelPicker.appendChild(b);
-    }
-    setLevel(settings.level);
-  }
-
-  function setLevel(n) {
-    settings.level = Math.min(CFG.MAX_START_LEVEL, Math.max(1, n | 0));
-    save(LS_SETTINGS, settings);
-    el.levelPicker.querySelectorAll('.lv').forEach((b) => {
-      b.classList.toggle('active', Number(b.dataset.level) === settings.level);
-    });
-  }
 
   function syncSoundButtons() {
     el.sfxBtn.classList.toggle('off', !audio.sfxOn);
@@ -351,7 +340,6 @@
     pause: togglePause,
     restart: () => { if (game.state !== 'idle') startGame(); },
     mute: () => el.sfxBtn.click(),
-    levelDelta: (d) => setLevel(settings.level + d),
     fullscreen: toggleFullscreen,
     blur: pauseGame,
   });
@@ -381,7 +369,6 @@
   }
 
   // ---- init -----------------------------------------------------------------
-  buildLevelPicker();
   syncSoundButtons();
   renderRank(el.startBoard, 5);
   showScreen('start');
@@ -389,7 +376,7 @@
   requestAnimationFrame(frame);
 
   window.addEventListener('resize', resize);
-  if (window.ResizeObserver) new ResizeObserver(resize).observe(el.stage);
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(el.arena);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
   const unlock = () => audio.ensure();

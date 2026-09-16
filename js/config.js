@@ -5,16 +5,19 @@ const CFG = {
   COLS: 10,
   ROWS: 20,            // visible rows
   HIDDEN: 2,           // hidden rows above the visible board
-  NEXT_COUNT: 5,
-  LOCK_DELAY: 500,     // ms a grounded piece waits before locking
+  NEXT_COUNT: 1,       // pieces shown in NEXT
+  LOCK_DELAY: 500,     // ms a grounded piece waits before locking (level 1)
+  LOCK_STEP: 40,       // lock delay shrinks this much per level
+  LOCK_MIN: 160,       // floor for the lock delay
   MAX_LOCK_RESETS: 15, // move/rotate resets allowed per lowest row
   SOFT_DROP_MS: 30,    // ms per cell while soft-dropping
   DAS: 160,            // delayed auto shift (ms)
   ARR: 30,             // auto repeat rate (ms per cell)
   CLEAR_MS: 260,       // line clear animation length
-  MAX_SPEED_LEVEL: 15, // gravity stops accelerating here
-  LINES_PER_LEVEL: 10,
-  MAX_START_LEVEL: 10,
+  MAX_SPEED_LEVEL: 15, // gravity stops accelerating here (timed mode only)
+  POINTS_PER_LEVEL: 1000, // level n needs 1000 * (n-1) * n / 2 points
+  MAX_LEVEL: 20,
+  INSTANT_GRAVITY: true, // 20G: every piece drops to the floor immediately
 };
 
 const TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
@@ -74,6 +77,19 @@ const SCORE = {
   COMBO: 50,
   B2B_MULT: 1.5,
 };
+
+// Score needed to reach a level: thresholds grow so the level multiplier
+// doesn't snowball (L2 @ 1,000, L3 @ 3,000, L4 @ 6,000, L5 @ 10,000 ...).
+function levelForScore(score) {
+  let level = 1;
+  while (level < CFG.MAX_LEVEL && score >= CFG.POINTS_PER_LEVEL * level * (level + 1) / 2) level++;
+  return level;
+}
+
+// Lock delay shrinks as the level rises: this is what makes 20G harder.
+function lockDelayMs(level) {
+  return Math.max(CFG.LOCK_MIN, CFG.LOCK_DELAY - (level - 1) * CFG.LOCK_STEP);
+}
 
 // Milliseconds per row of gravity for a given level (Tetris guideline curve).
 function gravityMs(level) {
