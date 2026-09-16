@@ -53,6 +53,7 @@ class Input {
         case 'Enter': a.enter(); break;
         case 'KeyR': a.restart(); break;
         case 'KeyM': a.mute(); break;
+        case 'KeyF': a.fullscreen(); break;
         default: break;
       }
     });
@@ -102,99 +103,5 @@ class Input {
         break;
       }
     }
-  }
-
-  // ---- on-screen buttons ----------------------------------------------------
-  bindButtons(container) {
-    container.querySelectorAll('[data-action]').forEach((btn) => {
-      const action = btn.dataset.action;
-      let active = false;
-      const down = (e) => {
-        e.preventDefault();
-        if (active) return;
-        active = true;
-        try { btn.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-        btn.classList.add('pressed');
-        this.touchAction(action, true);
-      };
-      const up = (e) => {
-        e.preventDefault();
-        if (!active) return;
-        active = false;
-        btn.classList.remove('pressed');
-        this.touchAction(action, false);
-      };
-      btn.addEventListener('pointerdown', down);
-      btn.addEventListener('pointerup', up);
-      btn.addEventListener('pointercancel', up);
-      btn.addEventListener('contextmenu', (e) => e.preventDefault());
-    });
-  }
-
-  touchAction(action, down) {
-    const g = this.game;
-    const a = this.actions;
-    switch (action) {
-      case 'left': down ? this.press(-1) : this.release(-1); break;
-      case 'right': down ? this.press(1) : this.release(1); break;
-      case 'down': g.setSoftDrop(down); break;
-      case 'cw': if (down) g.rotate(1); break;
-      case 'ccw': if (down) g.rotate(-1); break;
-      case 'hard': if (down) g.hardDrop(); break;
-      case 'hold': if (down) g.holdPiece(); break;
-      case 'pause': if (down) a.pause(); break;
-      default: break;
-    }
-  }
-
-  // ---- swipe / tap gestures on the board -----------------------------------
-  bindGestures(el, getCell) {
-    let start = null;
-    let movedCells = 0;
-    let movedRows = 0;
-    let moved = false;
-
-    el.addEventListener('pointerdown', (e) => {
-      if (e.pointerType === 'mouse') return;
-      if (!this.game.active) return;
-      start = { x: e.clientX, y: e.clientY, t: performance.now() };
-      movedCells = 0;
-      movedRows = 0;
-      moved = false;
-      try { el.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
-    });
-
-    el.addEventListener('pointermove', (e) => {
-      if (!start) return;
-      const cell = getCell();
-      const dx = e.clientX - start.x;
-      const dy = e.clientY - start.y;
-      const cx = Math.trunc(dx / cell);
-      while (movedCells < cx) { this.game.move(1); movedCells++; moved = true; }
-      while (movedCells > cx) { this.game.move(-1); movedCells--; moved = true; }
-      const ry = Math.trunc(dy / (cell * 0.9));
-      if (ry > movedRows && Math.abs(dx) < cell * 1.5) {
-        for (; movedRows < ry; movedRows++) this.game.softDropStep();
-        moved = true;
-      }
-    });
-
-    const end = (e) => {
-      if (!start) return;
-      const cell = getCell();
-      const dt = performance.now() - start.t;
-      const dx = e.clientX - start.x;
-      const dy = e.clientY - start.y;
-      if (!moved && dt < 300 && Math.hypot(dx, dy) < 10) {
-        this.game.rotate(1);
-      } else if (dy > cell * 2 && dt < 260 && Math.abs(dx) < Math.abs(dy)) {
-        this.game.hardDrop();
-      } else if (dy < -cell * 2 && dt < 300 && Math.abs(dx) < Math.abs(dy)) {
-        this.game.holdPiece();
-      }
-      start = null;
-    };
-    el.addEventListener('pointerup', end);
-    el.addEventListener('pointercancel', end);
   }
 }

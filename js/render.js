@@ -12,28 +12,19 @@ class Renderer {
     this.cell = 30;
     this.pcell = 20;
     this.dpr = 1;
-    this.horizontalNext = false;
     this.flash = 0;
     this.previewKey = null;
     this.sizes = {};
   }
 
-  resize(cell, pcell, horizontalNext) {
+  resize(cell, pcell) {
     this.dpr = Math.min(window.devicePixelRatio || 1, 3);
     this.cell = cell;
     this.pcell = pcell;
-    this.horizontalNext = horizontalNext;
     this.sizes.board = this.setup(this.canvas, this.ctx, cell * CFG.COLS, cell * CFG.ROWS);
     this.sizes.hold = this.setup(this.holdCanvas, this.holdCtx, pcell * 5, pcell * 3.5);
-    const n = this.nextCount();
-    this.sizes.next = horizontalNext
-      ? this.setup(this.nextCanvas, this.nextCtx, pcell * (4 * n + 1), pcell * 3.5)
-      : this.setup(this.nextCanvas, this.nextCtx, pcell * 5, pcell * (3 * n + 0.5));
+    this.sizes.next = this.setup(this.nextCanvas, this.nextCtx, pcell * 5, pcell * (3 * CFG.NEXT_COUNT + 0.5));
     this.previewKey = null;
-  }
-
-  nextCount() {
-    return this.horizontalNext ? Math.min(3, CFG.NEXT_COUNT) : CFG.NEXT_COUNT;
   }
 
   setup(canvas, ctx, w, h) {
@@ -148,7 +139,7 @@ class Renderer {
   // ---- hold / next ----------------------------------------------------------
   drawPreviews() {
     const g = this.game;
-    const key = `${g.hold || '-'}|${g.queue.join('')}|${g.canHold ? 1 : 0}|${this.horizontalNext}`;
+    const key = `${g.hold || '-'}|${g.queue.join('')}|${g.canHold ? 1 : 0}|${this.pcell}`;
     if (key === this.previewKey) return;
     this.previewKey = key;
 
@@ -159,13 +150,10 @@ class Renderer {
 
     const nc = this.nextCtx;
     nc.clearRect(0, 0, this.sizes.next.w, this.sizes.next.h);
-    const count = this.nextCount();
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < CFG.NEXT_COUNT; i++) {
       const t = g.queue[i];
       if (!t) continue;
-      const cx = this.horizontalNext ? pc * (2.5 + 4 * i) : pc * 2.5;
-      const cy = this.horizontalNext ? pc * 1.75 : pc * (1.75 + 3 * i);
-      this.drawMini(nc, t, cx, cy, pc, i === 0 ? 1 : 0.8);
+      this.drawMini(nc, t, pc * 2.5, pc * (1.75 + 3 * i), pc, i === 0 ? 1 : 0.8);
     }
   }
 

@@ -39,6 +39,7 @@
     score: $('#score'),
     level: $('#level'),
     lines: $('#lines'),
+    time: $('#time'),
     best: $('#best'),
     overlay: $('#overlay'),
     screens: { start: $('#screen-start'), pause: $('#screen-pause'), over: $('#screen-over') },
@@ -58,22 +59,19 @@
     sfxBtn: $('#btn-sfx'),
     bgmBtn: $('#btn-bgm'),
     pauseBtn: $('#btn-pause'),
-    touch: $('#touch'),
+    fullBtn: $('#btn-full'),
   };
-
-  const mobileQuery = window.matchMedia('(max-width: 720px)');
 
   // ---- layout ---------------------------------------------------------------
   function resize() {
     const rect = el.stage.getBoundingClientRect();
-    const mobile = mobileQuery.matches;
     const pad = 6;
     const cell = Math.max(8, Math.floor(Math.min(
       (rect.height - pad) / CFG.ROWS,
       (rect.width - pad) / CFG.COLS
     )));
-    const pcell = mobile ? 11 : Math.max(12, Math.min(22, Math.round(cell * 0.62)));
-    renderer.resize(cell, pcell, mobile);
+    const pcell = Math.max(14, Math.min(26, Math.round(cell * 0.62)));
+    renderer.resize(cell, pcell);
     renderer.draw(0);
     renderer.drawPreviews();
   }
@@ -115,11 +113,16 @@
   }
 
   // ---- HUD ------------------------------------------------------------------
-  const hud = { score: -1, level: -1, lines: -1, best: -1 };
+  const hud = { score: -1, level: -1, lines: -1, time: -1, best: -1 };
   function updateHud() {
     if (game.score !== hud.score) { hud.score = game.score; el.score.textContent = fmt(game.score); }
     if (game.level !== hud.level) { hud.level = game.level; el.level.textContent = game.level; }
     if (game.lines !== hud.lines) { hud.lines = game.lines; el.lines.textContent = game.lines; }
+    const sec = Math.floor(game.stats.time / 1000);
+    if (sec !== hud.time) {
+      hud.time = sec;
+      el.time.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+    }
     const best = Math.max(bestScore(), game.score);
     if (best !== hud.best) { hud.best = best; el.best.textContent = fmt(best); }
   }
@@ -186,6 +189,21 @@
     renderRank(el.startBoard, 5);
     showScreen('start');
     el.pauseBtn.textContent = '⏸';
+  }
+
+  function toggleFullscreen() {
+    const doc = document;
+    const root = doc.documentElement;
+    const isFull = doc.fullscreenElement || doc.webkitFullscreenElement;
+    try {
+      if (!isFull) {
+        const req = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (req) { const r = req.call(root); if (r && r.catch) r.catch(() => {}); }
+      } else {
+        const exit = doc.exitFullscreen || doc.webkitExitFullscreen;
+        if (exit) { const r = exit.call(doc); if (r && r.catch) r.catch(() => {}); }
+      }
+    } catch (_) { /* ignore */ }
   }
 
   function onEnter() {
@@ -315,6 +333,7 @@
     else audio.stopBgm();
   });
   el.pauseBtn.addEventListener('click', togglePause);
+  el.fullBtn.addEventListener('click', toggleFullscreen);
   el.startBtn.addEventListener('click', startGame);
   el.resumeBtn.addEventListener('click', resumeGame);
   el.restartBtn.addEventListener('click', startGame);
@@ -333,10 +352,9 @@
     restart: () => { if (game.state !== 'idle') startGame(); },
     mute: () => el.sfxBtn.click(),
     levelDelta: (d) => setLevel(settings.level + d),
+    fullscreen: toggleFullscreen,
     blur: pauseGame,
   });
-  input.bindButtons(el.touch);
-  input.bindGestures(el.wrap, () => renderer.cell);
 
   // ---- main loop ------------------------------------------------------------
   let last = performance.now();
@@ -371,7 +389,6 @@
   requestAnimationFrame(frame);
 
   window.addEventListener('resize', resize);
-  mobileQuery.addEventListener('change', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(el.stage);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
