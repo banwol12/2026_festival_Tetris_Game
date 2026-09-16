@@ -87,6 +87,7 @@
   function showScreen(name) {
     Object.entries(el.screens).forEach(([k, s]) => s.classList.toggle('active', k === name));
     el.overlay.hidden = !name;
+    document.body.classList.toggle('playing', !name);
   }
 
   // ---- ranking --------------------------------------------------------------

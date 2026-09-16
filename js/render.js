@@ -86,10 +86,10 @@ class Renderer {
     const W = s * CFG.COLS;
     const H = s * CFG.ROWS;
 
-    ctx.fillStyle = '#0b0f1c';
+    ctx.fillStyle = '#08090f';
     ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let c = 1; c < CFG.COLS; c++) {
