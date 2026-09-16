@@ -82,7 +82,6 @@ body.playing {
   background-repeat: repeat, repeat, no-repeat;
 }
 body.playing .title { color: rgba(110, 28, 70, 0.8); }
-body.playing .title-year { background: rgba(110, 28, 70, 0.16); color: #4a0f2e; }
 body.playing .icon-btn { background: rgba(110, 28, 70, 0.14); border-color: rgba(110, 28, 70, 0.2); }
 body.playing .icon-btn:hover { background: rgba(110, 28, 70, 0.26); }
 body.playing .label { color: rgba(110, 28, 70, 0.78); }
@@ -126,16 +125,6 @@ body.playing .board-wrap {
   color: var(--muted);
   white-space: nowrap;
   transition: opacity 0.4s;
-}
-.title-year {
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: rgba(var(--pink-rgb), 0.16);
-  color: var(--pink);
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 11px;
-  letter-spacing: 0.04em;
 }
 body.playing .title { opacity: 1; }
 
@@ -324,17 +313,6 @@ body.playing .title { opacity: 1; }
   line-height: 1.02;
   letter-spacing: -0.02em;
 }
-.logo-year {
-  margin-bottom: 0.35em;
-  padding: 0.12em 0.5em;
-  border-radius: 999px;
-  border: 1px solid rgba(var(--sky-rgb), 0.5);
-  color: var(--sky);
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 0.24em;
-  letter-spacing: 0.12em;
-}
 .logo-name { color: #fff; }
 .logo-game { color: var(--pink); font-size: 1.12em; }
 
@@ -459,28 +437,6 @@ kbd {
   color: var(--muted);
 }
 
-.rank-badge {
-  display: inline-block;
-  padding: 2px 7px;
-  margin-left: 8px;
-  font-size: clamp(9px, 1.2vh, 12px);
-  font-family: var(--mono);
-  font-weight: 600;
-  border-radius: 4px;
-  letter-spacing: 0.05em;
-  vertical-align: middle;
-}
-.rank-badge.online {
-  background: rgba(92, 242, 138, 0.18);
-  color: #5cf28a;
-  border: 1px solid rgba(92, 242, 138, 0.4);
-}
-.rank-badge.local {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--muted);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-}
-}
 .board-table { width: 100%; border-collapse: collapse; font-size: clamp(13px, 1.9vh, 19px); }
 .board-table td { padding: 0.9vh 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
 .board-table .rk { width: 2.2em; color: var(--muted); font-family: var(--mono); }

@@ -58,8 +58,6 @@
     nameInput: $('#name-input'),
     overBoard: $('#over-board'),
     startBoard: $('#start-board'),
-    startRankBadge: $('#start-rank-badge'),
-    overRankBadge: $('#over-rank-badge'),
     sfxBtn: $('#btn-sfx'),
     bgmBtn: $('#btn-bgm'),
     pauseBtn: $('#btn-pause'),
@@ -94,16 +92,6 @@
   }
 
   // ---- ranking --------------------------------------------------------------
-  let isOnline = false;
-
-  function updateRankBadges() {
-    [el.startRankBadge, el.overRankBadge].forEach((b) => {
-      if (!b) return;
-      b.textContent = isOnline ? 'ONLINE (D1)' : 'LOCAL';
-      b.className = `rank-badge ${isOnline ? 'online' : 'local'}`;
-    });
-  }
-
   function bestScore() {
     return ranking.length ? ranking[0].score : 0;
   }
@@ -144,17 +132,13 @@
         const data = await res.json();
         if (data.success && Array.isArray(data.rankings)) {
           ranking = data.rankings;
-          isOnline = true;
-          updateRankBadges();
           save(LS_RANK, ranking);
           return ranking;
         }
       }
     } catch (_) {
-      // offline fallback
+      // offline: keep the local ranking
     }
-    isOnline = false;
-    updateRankBadges();
     return ranking;
   }
 
@@ -170,8 +154,6 @@
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          isOnline = true;
-          updateRankBadges();
           await fetchRankings();
           const onlineIdx = ranking.findIndex(
             (r) => r.name === entry.name && r.score === entry.score && r.lines === entry.lines
@@ -180,8 +162,7 @@
         }
       }
     } catch (_) {
-      isOnline = false;
-      updateRankBadges();
+      // offline: the local entry stays
     }
     return localIdx;
   }
