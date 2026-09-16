@@ -70,7 +70,8 @@ body.playing .bg { opacity: 0; }
 /* ---- app frame ------------------------------------------------------------- */
 /* ---- in-game: black board on a bright pink field ---------------------------- */
 body.playing {
-  background: radial-gradient(130% 110% at 18% 0%, #ffa3dc 0%, #ff5cc8 42%, var(--pink) 70%, #f21ea8 100%);
+  /* dusty, slightly greyed pink (Sanrio-ish) — not neon */
+  background: radial-gradient(130% 110% at 18% 0%, #ecb0c8 0%, #e09cb7 40%, #d48aa8 72%, #c47898 100%);
 }
 body.playing .title { color: rgba(46, 4, 32, 0.75); }
 body.playing .title-year { background: rgba(46, 4, 32, 0.2); color: #2e0420; }
