@@ -22,7 +22,7 @@
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
-  const settings = Object.assign({ sfx: true, bgm: true, level: 1, name: '' }, load(LS_SETTINGS, {}));
+  const settings = Object.assign({ sfx: true, bgm: true, name: '' }, load(LS_SETTINGS, {}));
   let ranking = load(LS_RANK, []);
   let pendingResult = null;
 
@@ -33,6 +33,7 @@
   const renderer = new Renderer(game, $('#board'), $('#hold'), $('#next'));
 
   const el = {
+    arena: $('#arena'),
     stage: $('#stage'),
     wrap: $('#board-wrap'),
     fx: $('#fx'),
@@ -42,8 +43,8 @@
     time: $('#time'),
     best: $('#best'),
     overlay: $('#overlay'),
+    hearts: $('#hearts'),
     screens: { start: $('#screen-start'), pause: $('#screen-pause'), over: $('#screen-over') },
-    levelPicker: $('#level-picker'),
     startBtn: $('#btn-start'),
     resumeBtn: $('#btn-resume'),
     restartBtn: $('#btn-restart'),
@@ -52,6 +53,7 @@
     overScore: $('#over-score'),
     overLines: $('#over-lines'),
     overLevel: $('#over-level'),
+    overTime: $('#over-time'),
     nameForm: $('#name-form'),
     nameInput: $('#name-input'),
     overBoard: $('#over-board'),
@@ -66,22 +68,29 @@
 
   // ---- layout ---------------------------------------------------------------
   function resize() {
-    const rect = el.stage.getBoundingClientRect();
-    const pad = 6;
+    const rect = el.arena.getBoundingClientRect();
+    const pad = 8;
     const cell = Math.max(8, Math.floor(Math.min(
       (rect.height - pad) / CFG.ROWS,
-      (rect.width - pad) / CFG.COLS
+      (rect.width * 0.42) / CFG.COLS
     )));
-    const pcell = Math.max(14, Math.min(26, Math.round(cell * 0.62)));
+    const pcell = Math.max(12, Math.min(48, Math.round(cell * 0.78)));
+    document.documentElement.style.setProperty('--cell', cell + 'px');
     renderer.resize(cell, pcell);
-    renderer.draw(0);
+    renderer.draw();
     renderer.drawPreviews();
+  }
+
+  function fmtTime(ms) {
+    const sec = Math.floor(ms / 1000);
+    return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   }
 
   // ---- screens --------------------------------------------------------------
   function showScreen(name) {
     Object.entries(el.screens).forEach(([k, s]) => s.classList.toggle('active', k === name));
     el.overlay.hidden = !name;
+    document.body.classList.toggle('playing', !name);
   }
 
   // ---- ranking --------------------------------------------------------------
@@ -186,7 +195,7 @@
     const sec = Math.floor(game.stats.time / 1000);
     if (sec !== hud.time) {
       hud.time = sec;
-      el.time.textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+      el.time.textContent = fmtTime(game.stats.time);
     }
     const best = Math.max(bestScore(), game.score);
     if (best !== hud.best) { hud.best = best; el.best.textContent = fmt(best); }
@@ -208,18 +217,51 @@
     while (el.fx.children.length > 4) el.fx.firstChild.remove();
   }
 
-  let shakeTime = 0;
-  let shakeAmp = 0;
-  function shake(amp) {
-    shakeAmp = Math.max(shakeAmp, amp);
-    shakeTime = 180;
+  const HEART_SVG = '<svg viewBox="0 0 32 29" aria-hidden="true"><path fill="currentColor" ' +
+    'd="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 ' +
+    '6.1-9.3 16-12.1 16-21.2C32 3.8 28.2 0 23.6 0z"/></svg>';
+  const HEART_COLORS = ['#ff47c0', '#ff9485', '#ffffff', '#ffb3dd', '#ff47c0'];
+
+  // Hearts burst out of the cleared rows and drift down while fading.
+  function burstHearts(rows) {
+    const rect = el.wrap.getBoundingClientRect();
+    const cell = renderer.cell;
+    const avgRow = rows.reduce((a, b) => a + b, 0) / rows.length;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + (avgRow - CFG.HIDDEN + 0.5) * cell;
+    const count = 26;
+    for (let i = 0; i < count; i++) {
+      const h = document.createElement('span');
+      h.className = 'heart';
+      h.innerHTML = HEART_SVG;
+      const size = cell * (0.45 + Math.random() * 0.75);
+      h.style.width = `${size}px`;
+      h.style.height = `${size}px`;
+      h.style.left = `${cx - size / 2 + (Math.random() - 0.5) * rect.width * 0.6}px`;
+      h.style.top = `${cy - size / 2}px`;
+      h.style.color = HEART_COLORS[i % HEART_COLORS.length];
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.6;
+      const dist = cell * (3 + Math.random() * 8);
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist * 0.8;
+      const rot = (Math.random() - 0.5) * 90;
+      const dur = 1100 + Math.random() * 700;
+      el.hearts.appendChild(h);
+      const anim = h.animate([
+        { transform: 'translate(0, 0) scale(0.15) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5}px) scale(1.3) rotate(${rot * 0.4}deg)`, opacity: 1, offset: 0.25 },
+        { transform: `translate(${dx * 0.85}px, ${dy * 0.85 + cell * 0.4}px) scale(1) rotate(${rot * 0.8}deg)`, opacity: 1, offset: 0.62 },
+        { transform: `translate(${dx}px, ${dy + cell * 1.6}px) scale(0.7) rotate(${rot}deg)`, opacity: 0 },
+      ], { duration: dur, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)', fill: 'forwards' });
+      anim.onfinish = () => h.remove();
+    }
   }
 
   // ---- game flow ------------------------------------------------------------
   function startGame() {
     audio.ensure();
     audio.resetBgm();
-    game.start(settings.level);
+    game.start(1);
     showScreen(null);
     audio.startBgm(game.level);
     el.pauseBtn.textContent = '⏸';
@@ -285,12 +327,11 @@
   game.on('move', () => audio.move());
   game.on('rotate', () => audio.rotate());
   game.on('hold', () => audio.hold());
-  game.on('harddrop', (n) => { audio.hardDrop(); shake(n > 0 ? 3 : 1); });
+  game.on('harddrop', () => audio.hardDrop());
   game.on('lock', () => audio.lock());
-  game.on('clearstart', ({ count, tspin }) => {
+  game.on('clearstart', ({ rows, count, tspin }) => {
     audio.clear(count, tspin);
-    renderer.flash = count === 4 || tspin ? 1 : 0.45;
-    if (count === 4) shake(7);
+    if (count === 4) burstHearts(rows);
   });
   game.on('score', ({ points, lines, tspin, b2b, combo }) => {
     let label = '';
@@ -305,7 +346,7 @@
   game.on('levelup', (lv) => {
     audio.levelUp();
     audio.setLevel(lv);
-    pop(`LEVEL ${lv}`, 'level');
+    pop(`LEVEL ${lv} · SPEED UP`, 'level');
     bump(el.level);
   });
   game.on('gameover', async (r) => {
@@ -314,8 +355,8 @@
     el.overScore.textContent = fmt(r.score);
     el.overLines.textContent = r.lines;
     el.overLevel.textContent = r.level;
+    el.overTime.textContent = fmtTime(r.stats.time);
     let q = qualifies(r.score);
-    pendingResult = q ? r : null;
     el.nameForm.hidden = !q;
     renderRank(el.overBoard, MAX_RANK);
     showScreen('over');
@@ -366,28 +407,6 @@
     }
   });
 
-  function buildLevelPicker() {
-    el.levelPicker.innerHTML = '';
-    for (let i = 1; i <= CFG.MAX_START_LEVEL; i++) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'lv';
-      b.textContent = i;
-      b.dataset.level = i;
-      b.addEventListener('click', () => setLevel(i));
-      el.levelPicker.appendChild(b);
-    }
-    setLevel(settings.level);
-  }
-
-  function setLevel(n) {
-    settings.level = Math.min(CFG.MAX_START_LEVEL, Math.max(1, n | 0));
-    save(LS_SETTINGS, settings);
-    el.levelPicker.querySelectorAll('.lv').forEach((b) => {
-      b.classList.toggle('active', Number(b.dataset.level) === settings.level);
-    });
-  }
-
   function syncSoundButtons() {
     el.sfxBtn.classList.toggle('off', !audio.sfxOn);
     el.sfxBtn.textContent = audio.sfxOn ? '🔊' : '🔇';
@@ -429,7 +448,6 @@
     pause: togglePause,
     restart: () => { if (game.state !== 'idle') startGame(); },
     mute: () => el.sfxBtn.click(),
-    levelDelta: (d) => setLevel(settings.level + d),
     fullscreen: toggleFullscreen,
     blur: pauseGame,
   });
@@ -441,25 +459,17 @@
     last = now;
     input.update(dt);
     game.update(dt);
-    renderer.draw(dt);
+    renderer.draw();
     renderer.drawPreviews();
     updateHud();
-    if (shakeTime > 0) {
-      shakeTime -= dt;
-      const k = Math.max(0, shakeTime / 180);
-      const ox = (Math.random() - 0.5) * shakeAmp * k * 2;
-      const oy = (Math.random() - 0.5) * shakeAmp * k * 2;
-      el.wrap.style.transform = `translate(${ox.toFixed(1)}px, ${oy.toFixed(1)}px)`;
-      if (shakeTime <= 0) {
-        el.wrap.style.transform = '';
-        shakeAmp = 0;
-      }
-    }
     requestAnimationFrame(frame);
   }
 
+  if (new URLSearchParams(location.search).has('debug')) {
+    window.__tetris = { game, burstHearts };
+  }
+
   // ---- init -----------------------------------------------------------------
-  buildLevelPicker();
   syncSoundButtons();
   renderRank(el.startBoard, 5);
   fetchRankings().then(() => {
@@ -472,7 +482,7 @@
   requestAnimationFrame(frame);
 
   window.addEventListener('resize', resize);
-  if (window.ResizeObserver) new ResizeObserver(resize).observe(el.stage);
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(el.arena);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(resize);
   document.addEventListener('visibilitychange', () => { if (document.hidden) pauseGame(); });
   const unlock = () => audio.ensure();

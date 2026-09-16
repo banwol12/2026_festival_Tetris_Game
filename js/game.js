@@ -255,26 +255,43 @@ class Game {
     if (!this.piece) return;
 
     const p = this.piece;
-    if (this.isGrounded()) {
-      this.lockTimer += dt;
-      if (this.lockTimer >= CFG.LOCK_DELAY) this.lock();
-      return;
+    if (CFG.INSTANT_GRAVITY) {
+      // 20G: the piece always sits on the floor; only the lock delay
+      // (with move resets) gives the player time to slide and rotate.
+      let fell = false;
+      while (!this.collides(p.matrix, p.x, p.y + 1)) {
+        p.y++;
+        fell = true;
+      }
+      if (fell) {
+        this.lastRotated = false;
+        this.checkLowest();
+      }
+    } else if (!this.isGrounded()) {
+      const g = gravityMs(this.level);
+      const interval = this.softDrop ? Math.min(CFG.SOFT_DROP_MS, g) : g;
+      this.gravityAcc += dt;
+      while (this.gravityAcc >= interval) {
+        this.gravityAcc -= interval;
+        if (this.collides(p.matrix, p.x, p.y + 1)) {
+          this.gravityAcc = 0;
+          break;
+        }
+        p.y++;
+        if (this.softDrop) this.score += SCORE.SOFT_DROP;
+        this.lastRotated = false;
+        this.checkLowest();
+      }
     }
 
-    const g = gravityMs(this.level);
-    const interval = this.softDrop ? Math.min(CFG.SOFT_DROP_MS, g) : g;
-    this.gravityAcc += dt;
-    while (this.gravityAcc >= interval) {
-      this.gravityAcc -= interval;
-      if (this.collides(p.matrix, p.x, p.y + 1)) {
-        this.gravityAcc = 0;
-        break;
-      }
-      p.y++;
-      if (this.softDrop) this.score += SCORE.SOFT_DROP;
-      this.lastRotated = false;
-      this.checkLowest();
+    if (this.isGrounded()) {
+      this.lockTimer += dt;
+      if (this.lockTimer >= this.lockDelay) this.lock();
     }
+  }
+
+  get lockDelay() {
+    return lockDelayMs(this.level);
   }
 
   lock() {
@@ -366,13 +383,11 @@ class Game {
       this.emit('score', { points: pts, lines: n, tspin, b2b, combo: this.combo });
     }
 
-    if (n > 0) {
-      this.lines += n;
-      const newLevel = this.startLevel + Math.floor(this.lines / CFG.LINES_PER_LEVEL);
-      if (newLevel > this.level) {
-        this.level = newLevel;
-        this.emit('levelup', this.level);
-      }
+    if (n > 0) this.lines += n;
+    const newLevel = Math.max(this.startLevel, levelForScore(this.score));
+    if (newLevel > this.level) {
+      this.level = newLevel;
+      this.emit('levelup', this.level);
     }
   }
 

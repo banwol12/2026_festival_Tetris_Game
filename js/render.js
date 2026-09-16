@@ -12,7 +12,6 @@ class Renderer {
     this.cell = 30;
     this.pcell = 20;
     this.dpr = 1;
-    this.flash = 0;
     this.previewKey = null;
     this.sizes = {};
   }
@@ -22,8 +21,8 @@ class Renderer {
     this.cell = cell;
     this.pcell = pcell;
     this.sizes.board = this.setup(this.canvas, this.ctx, cell * CFG.COLS, cell * CFG.ROWS);
-    this.sizes.hold = this.setup(this.holdCanvas, this.holdCtx, pcell * 5, pcell * 3.5);
-    this.sizes.next = this.setup(this.nextCanvas, this.nextCtx, pcell * 5, pcell * (3 * CFG.NEXT_COUNT + 0.5));
+    this.sizes.hold = this.setup(this.holdCanvas, this.holdCtx, pcell * 5, pcell * 3);
+    this.sizes.next = this.setup(this.nextCanvas, this.nextCtx, pcell * 5, pcell * (3 * CFG.NEXT_COUNT));
     this.previewKey = null;
   }
 
@@ -79,17 +78,17 @@ class Renderer {
   }
 
   // ---- board ----------------------------------------------------------------
-  draw(dt) {
+  draw() {
     const ctx = this.ctx;
     const s = this.cell;
     const g = this.game;
     const W = s * CFG.COLS;
     const H = s * CFG.ROWS;
 
-    ctx.fillStyle = '#0b0f1c';
+    ctx.fillStyle = '#08090f';
     ctx.fillRect(0, 0, W, H);
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let c = 1; c < CFG.COLS; c++) {
@@ -111,9 +110,8 @@ class Renderer {
         if (!t) continue;
         if (clearingRows && clearingRows.has(r)) {
           const shrink = s * prog * 0.5;
-          this.drawCell(ctx, c * s, vy * s, s, t, 1 - prog);
-          ctx.fillStyle = `rgba(255,255,255,${0.9 * (1 - prog)})`;
-          ctx.fillRect(c * s + shrink, vy * s + shrink, s - shrink * 2, s - shrink * 2);
+          const size = s - shrink * 2;
+          this.drawCell(ctx, c * s + shrink, vy * s + shrink, size, t, 1 - prog * 0.8);
         } else {
           this.drawCell(ctx, c * s, vy * s, s, t);
         }
@@ -125,14 +123,8 @@ class Renderer {
       const gy = g.ghostY();
       if (gy !== p.y) this.drawPiece(ctx, p.matrix, p.x, gy, s, p.type, true);
       const grounded = gy === p.y;
-      const alpha = grounded ? 1 - 0.35 * Math.min(1, g.lockTimer / CFG.LOCK_DELAY) : 1;
+      const alpha = grounded ? 1 - 0.35 * Math.min(1, g.lockTimer / g.lockDelay) : 1;
       this.drawPiece(ctx, p.matrix, p.x, p.y, s, p.type, false, alpha);
-    }
-
-    if (this.flash > 0) {
-      ctx.fillStyle = `rgba(255,255,255,${this.flash * 0.35})`;
-      ctx.fillRect(0, 0, W, H);
-      this.flash = Math.max(0, this.flash - dt / 220);
     }
   }
 
@@ -146,14 +138,14 @@ class Renderer {
     const pc = this.pcell;
     const hc = this.holdCtx;
     hc.clearRect(0, 0, this.sizes.hold.w, this.sizes.hold.h);
-    if (g.hold) this.drawMini(hc, g.hold, pc * 2.5, pc * 1.75, pc, g.canHold ? 1 : 0.35);
+    if (g.hold) this.drawMini(hc, g.hold, pc * 2.5, pc * 1.5, pc, g.canHold ? 1 : 0.35);
 
     const nc = this.nextCtx;
     nc.clearRect(0, 0, this.sizes.next.w, this.sizes.next.h);
     for (let i = 0; i < CFG.NEXT_COUNT; i++) {
       const t = g.queue[i];
       if (!t) continue;
-      this.drawMini(nc, t, pc * 2.5, pc * (1.75 + 3 * i), pc, i === 0 ? 1 : 0.8);
+      this.drawMini(nc, t, pc * 2.5, pc * (1.5 + 3 * i), pc, i === 0 ? 1 : 0.8);
     }
   }
 
