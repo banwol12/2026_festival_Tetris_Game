@@ -22,14 +22,17 @@ const CFG = {
 
 const TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
 
+// Festival palette: a1d3e8 / edea95 / ff47c0 / ff9485 / a431c1.
+// Seven pieces share five colours; the two lightest are used twice,
+// never on a mirror pair (S/Z, J/L) so shapes stay easy to tell apart.
 const COLORS = {
-  I: '#2ee6ff',
-  O: '#ffe14d',
-  T: '#c56bff',
-  S: '#5cf28a',
-  Z: '#ff5e6c',
-  J: '#4d8bff',
-  L: '#ffa640',
+  I: '#a1d3e8', // sky
+  O: '#edea95', // yellow
+  T: '#a431c1', // purple
+  S: '#ff47c0', // pink
+  Z: '#ff9485', // salmon
+  J: '#a1d3e8', // sky
+  L: '#edea95', // yellow
 };
 
 // Rotation state 0 (spawn) for each tetromino, SRS bounding boxes.
