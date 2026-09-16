@@ -12,7 +12,6 @@ class Renderer {
     this.cell = 30;
     this.pcell = 20;
     this.dpr = 1;
-    this.flash = 0;
     this.previewKey = null;
     this.sizes = {};
   }
@@ -79,7 +78,7 @@ class Renderer {
   }
 
   // ---- board ----------------------------------------------------------------
-  draw(dt) {
+  draw() {
     const ctx = this.ctx;
     const s = this.cell;
     const g = this.game;
@@ -111,9 +110,8 @@ class Renderer {
         if (!t) continue;
         if (clearingRows && clearingRows.has(r)) {
           const shrink = s * prog * 0.5;
-          this.drawCell(ctx, c * s, vy * s, s, t, 1 - prog);
-          ctx.fillStyle = `rgba(255,255,255,${0.9 * (1 - prog)})`;
-          ctx.fillRect(c * s + shrink, vy * s + shrink, s - shrink * 2, s - shrink * 2);
+          const size = s - shrink * 2;
+          this.drawCell(ctx, c * s + shrink, vy * s + shrink, size, t, 1 - prog * 0.8);
         } else {
           this.drawCell(ctx, c * s, vy * s, s, t);
         }
@@ -127,12 +125,6 @@ class Renderer {
       const grounded = gy === p.y;
       const alpha = grounded ? 1 - 0.35 * Math.min(1, g.lockTimer / g.lockDelay) : 1;
       this.drawPiece(ctx, p.matrix, p.x, p.y, s, p.type, false, alpha);
-    }
-
-    if (this.flash > 0) {
-      ctx.fillStyle = `rgba(255,255,255,${this.flash * 0.35})`;
-      ctx.fillRect(0, 0, W, H);
-      this.flash = Math.max(0, this.flash - dt / 220);
     }
   }
 

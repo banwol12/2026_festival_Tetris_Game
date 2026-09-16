@@ -74,7 +74,7 @@
     const pcell = Math.max(12, Math.min(48, Math.round(cell * 0.78)));
     document.documentElement.style.setProperty('--cell', cell + 'px');
     renderer.resize(cell, pcell);
-    renderer.draw(0);
+    renderer.draw();
     renderer.drawPreviews();
   }
 
@@ -151,13 +151,6 @@
     while (el.fx.children.length > 4) el.fx.firstChild.remove();
   }
 
-  let shakeTime = 0;
-  let shakeAmp = 0;
-  function shake(amp) {
-    shakeAmp = Math.max(shakeAmp, amp);
-    shakeTime = 180;
-  }
-
   // ---- game flow ------------------------------------------------------------
   function startGame() {
     audio.ensure();
@@ -227,16 +220,9 @@
   game.on('move', () => audio.move());
   game.on('rotate', () => audio.rotate());
   game.on('hold', () => audio.hold());
-  game.on('harddrop', (n) => { audio.hardDrop(); shake(n > 0 ? 3 : 1); });
+  game.on('harddrop', () => audio.hardDrop());
   game.on('lock', () => audio.lock());
-  game.on('clearstart', ({ count, tspin }) => {
-    audio.clear(count, tspin);
-    renderer.flash = count === 4 || tspin ? 1 : 0.45;
-    if (count === 4) shake(7);
-    el.wrap.classList.remove('pulse');
-    void el.wrap.offsetWidth;
-    el.wrap.classList.add('pulse');
-  });
+  game.on('clearstart', ({ count, tspin }) => audio.clear(count, tspin));
   game.on('score', ({ points, lines, tspin, b2b, combo }) => {
     let label = '';
     if (tspin) label = 'T-SPIN' + (lines ? ' ' + LINE_NAMES[lines] : '');
@@ -352,20 +338,9 @@
     last = now;
     input.update(dt);
     game.update(dt);
-    renderer.draw(dt);
+    renderer.draw();
     renderer.drawPreviews();
     updateHud();
-    if (shakeTime > 0) {
-      shakeTime -= dt;
-      const k = Math.max(0, shakeTime / 180);
-      const ox = (Math.random() - 0.5) * shakeAmp * k * 2;
-      const oy = (Math.random() - 0.5) * shakeAmp * k * 2;
-      el.wrap.style.transform = `translate(${ox.toFixed(1)}px, ${oy.toFixed(1)}px)`;
-      if (shakeTime <= 0) {
-        el.wrap.style.transform = '';
-        shakeAmp = 0;
-      }
-    }
     requestAnimationFrame(frame);
   }
 

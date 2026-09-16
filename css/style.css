@@ -17,7 +17,8 @@
   --danger: var(--pink);
   --sky-rgb: 161, 211, 232;
   --pink-rgb: 255, 71, 192;
-  --display: 'Orbitron', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --display: 'Unbounded', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mono: 'Space Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
   --body: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', 'Segoe UI', Roboto, sans-serif;
 }
 
@@ -84,20 +85,27 @@ body.playing { background: #000; }
 }
 
 .title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--display);
-  font-weight: 900;
-  font-size: clamp(16px, 1.6vw, 22px);
-  letter-spacing: 0.18em;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
   white-space: nowrap;
+  transition: opacity 0.4s;
 }
-
-.t-year { color: var(--sky); }
-.t-tetris {
-  background: linear-gradient(90deg, var(--sky), var(--pink));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.title-year {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(var(--pink-rgb), 0.16);
+  color: var(--pink);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
 }
+body.playing .title { opacity: 0.45; }
 
 .topbar-actions { display: flex; gap: 8px; }
 .icon-btn {
@@ -141,25 +149,23 @@ body.playing { background: #000; }
 
 .label {
   font-family: var(--display);
-  font-weight: 700;
-  font-size: clamp(10px, calc(var(--cell) * 0.32), 20px);
-  letter-spacing: 0.3em;
+  font-weight: 500;
+  font-size: clamp(9px, calc(var(--cell) * 0.26), 15px);
+  letter-spacing: 0.18em;
   color: var(--muted);
 }
 .value {
-  font-family: var(--display);
+  font-family: var(--mono);
   font-weight: 700;
-  font-size: clamp(18px, calc(var(--cell) * 0.85), 64px);
+  font-size: clamp(18px, calc(var(--cell) * 0.9), 66px);
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.02em;
 }
 .value.big {
-  font-weight: 900;
-  font-size: clamp(22px, calc(var(--cell) * 1.15), 84px);
-  text-shadow: 0 0 24px rgba(var(--sky-rgb), 0.4);
+  font-size: clamp(24px, calc(var(--cell) * 1.25), 90px);
+  color: var(--sky);
 }
-.value.hot { color: var(--pink); text-shadow: 0 0 20px rgba(var(--pink-rgb), 0.35); }
+.value.hot { color: var(--pink); }
 .value.bump { animation: bump 0.4s ease-out; }
 @keyframes bump {
   0% { transform: scale(1); color: var(--pink); }
@@ -196,11 +202,6 @@ body.playing { background: #000; }
     30px 0 70px rgba(var(--pink-rgb), 0.14),
     0 30px 80px rgba(0, 0, 0, 0.6);
 }
-.board-wrap.pulse { animation: pulse 0.5s ease-out; }
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), 0 0 120px rgba(var(--pink-rgb), 0.6), 0 30px 80px rgba(0, 0, 0, 0.6); border-color: var(--pink); }
-  100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.7), -30px 0 70px rgba(var(--sky-rgb), 0.14), 30px 0 70px rgba(var(--pink-rgb), 0.14), 0 30px 80px rgba(0, 0, 0, 0.6); }
-}
 .board-wrap canvas { display: block; }
 
 .fx {
@@ -218,18 +219,18 @@ body.playing { background: #000; }
 .pop {
   font-family: var(--display);
   font-weight: 900;
-  font-size: calc(var(--cell) * 0.72);
-  letter-spacing: 0.08em;
+  font-size: calc(var(--cell) * 0.62);
+  letter-spacing: 0.02em;
   color: #fff;
   text-shadow: 0 0 14px var(--sky), 0 2px 0 rgba(0, 0, 0, 0.7);
   animation: pop 0.95s ease-out forwards;
   white-space: nowrap;
 }
-.pop.big { font-size: calc(var(--cell) * 1.05); color: var(--pink); text-shadow: 0 0 22px var(--pink), 0 3px 0 rgba(0, 0, 0, 0.7); }
+.pop.big { font-size: calc(var(--cell) * 0.9); color: var(--pink); text-shadow: 0 0 22px var(--pink), 0 3px 0 rgba(0, 0, 0, 0.7); }
 .pop.tspin { color: var(--purple); text-shadow: 0 0 22px var(--purple), 0 3px 0 rgba(0, 0, 0, 0.7); }
-.pop.combo { color: var(--sky); font-size: calc(var(--cell) * 0.55); }
+.pop.combo { color: var(--sky); font-size: calc(var(--cell) * 0.48); }
 .pop.level { color: var(--yellow); text-shadow: 0 0 18px var(--yellow), 0 2px 0 rgba(0, 0, 0, 0.7); }
-.pop.pts { font-size: calc(var(--cell) * 0.42); color: var(--muted); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
+.pop.pts { font-family: var(--mono); font-size: calc(var(--cell) * 0.4); color: var(--muted); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
 @keyframes pop {
   0% { transform: translateY(12px) scale(0.6); opacity: 0; }
   15% { transform: translateY(0) scale(1.1); opacity: 1; }
@@ -266,20 +267,34 @@ body.playing { background: #000; }
 }
 
 .logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   font-family: var(--display);
   font-weight: 900;
-  font-size: clamp(30px, 7.6vh, 96px);
-  line-height: 1.08;
-  letter-spacing: 0.12em;
-  text-shadow: 0 0 40px rgba(var(--sky-rgb), 0.35);
+  font-size: clamp(30px, 7.4vh, 92px);
+  line-height: 1.02;
+  letter-spacing: -0.02em;
 }
-.logo .t-mid { font-size: 0.8em; letter-spacing: 0.16em; }
+.logo-year {
+  margin-bottom: 0.35em;
+  padding: 0.12em 0.5em;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--sky-rgb), 0.5);
+  color: var(--sky);
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.24em;
+  letter-spacing: 0.12em;
+}
+.logo-name { color: #fff; }
+.logo-game { color: var(--pink); font-size: 1.12em; }
 
 .tagline {
-  margin: 2.4vh 0 4vh;
-  font-size: clamp(14px, 2vh, 22px);
+  margin: 3vh 0 4vh;
+  font-size: clamp(14px, 1.9vh, 20px);
+  line-height: 1.6;
   color: var(--muted);
-  letter-spacing: 0.02em;
 }
 
 .keys {
@@ -299,7 +314,8 @@ kbd {
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.08);
-  font-family: var(--display);
+  font-family: var(--mono);
+  font-weight: 700;
   font-size: 0.85em;
   color: var(--text);
   text-align: center;
@@ -309,23 +325,18 @@ kbd {
   margin: 0 0 2vh;
   font-family: var(--display);
   font-weight: 900;
-  font-size: clamp(28px, 7vh, 84px);
-  letter-spacing: 0.16em;
-  text-shadow: 0 0 40px rgba(var(--sky-rgb), 0.3);
+  font-size: clamp(28px, 6.6vh, 80px);
+  letter-spacing: -0.02em;
 }
-.screen-title.danger { color: var(--pink); text-shadow: 0 0 36px rgba(var(--pink-rgb), 0.5); }
+.screen-title.danger { color: var(--pink); }
 
 .final-score {
-  font-family: var(--display);
-  font-weight: 900;
+  font-family: var(--mono);
+  font-weight: 700;
   font-size: clamp(40px, 10vh, 120px);
   line-height: 1;
-  background: linear-gradient(90deg, var(--sky), var(--pink));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 0 24px rgba(var(--pink-rgb), 0.35));
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  color: var(--sky);
 }
 
 .result {
@@ -336,7 +347,7 @@ kbd {
 }
 .result div { display: flex; flex-direction: column; gap: 4px; }
 .result .label { font-size: clamp(10px, 1.4vh, 14px); }
-.result strong { font-family: var(--display); font-size: clamp(18px, 3.4vh, 36px); }
+.result strong { font-family: var(--mono); font-size: clamp(18px, 3.4vh, 36px); }
 
 .btn {
   display: inline-block;
@@ -347,8 +358,8 @@ kbd {
   color: var(--text);
   font-family: var(--display);
   font-weight: 700;
-  font-size: clamp(13px, 1.9vh, 20px);
-  letter-spacing: 0.12em;
+  font-size: clamp(13px, 1.8vh, 19px);
+  letter-spacing: 0.02em;
   cursor: pointer;
   transition: transform 0.1s, filter 0.15s;
 }
@@ -362,8 +373,8 @@ kbd {
 }
 .btn.huge {
   padding: 2.2vh 6vw;
-  font-size: clamp(18px, 3vh, 32px);
-  letter-spacing: 0.2em;
+  font-size: clamp(18px, 2.8vh, 30px);
+  letter-spacing: 0.06em;
   animation: breathe 2.4s ease-in-out infinite;
 }
 @keyframes breathe {
@@ -395,15 +406,16 @@ kbd {
 .rank h3 {
   margin: 0 0 1vh;
   font-family: var(--display);
+  font-weight: 500;
   font-size: clamp(11px, 1.5vh, 15px);
-  letter-spacing: 0.3em;
+  letter-spacing: 0.18em;
   color: var(--muted);
 }
 .board-table { width: 100%; border-collapse: collapse; font-size: clamp(13px, 1.9vh, 19px); }
 .board-table td { padding: 0.9vh 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
-.board-table .rk { width: 2.2em; color: var(--muted); font-family: var(--display); }
+.board-table .rk { width: 2.2em; color: var(--muted); font-family: var(--mono); }
 .board-table .nm { overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
-.board-table .sc { text-align: right; font-family: var(--display); font-variant-numeric: tabular-nums; }
+.board-table .sc { text-align: right; font-family: var(--mono); font-weight: 700; }
 .board-table .ln { text-align: right; color: var(--muted); width: 4em; }
 .board-table tr:first-child .rk { color: var(--pink); }
 .board-table tr.me td { color: var(--pink); font-weight: 700; }
