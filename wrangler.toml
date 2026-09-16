@@ -1,0 +1,9 @@
+name = "digitalarts-tetris"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+# Cloudflare D1 Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "digitalarts-tetris"
+database_id = "86d8182b-aee4-4671-82c5-d751ec75a2ce"

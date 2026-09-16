@@ -56,6 +56,8 @@
     nameInput: $('#name-input'),
     overBoard: $('#over-board'),
     startBoard: $('#start-board'),
+    startRankBadge: $('#start-rank-badge'),
+    overRankBadge: $('#over-rank-badge'),
     sfxBtn: $('#btn-sfx'),
     bgmBtn: $('#btn-bgm'),
     pauseBtn: $('#btn-pause'),
@@ -83,11 +85,22 @@
   }
 
   // ---- ranking --------------------------------------------------------------
+  let isOnline = false;
+
+  function updateRankBadges() {
+    [el.startRankBadge, el.overRankBadge].forEach((b) => {
+      if (!b) return;
+      b.textContent = isOnline ? 'ONLINE (D1)' : 'LOCAL';
+      b.className = `rank-badge ${isOnline ? 'online' : 'local'}`;
+    });
+  }
+
   function bestScore() {
     return ranking.length ? ranking[0].score : 0;
   }
 
   function renderRank(table, limit, highlight = -1) {
+    if (!table) return;
     const rows = ranking.slice(0, limit);
     if (!rows.length) {
       table.innerHTML = '<tr><td class="empty">아직 기록이 없습니다</td></tr>';
@@ -101,7 +114,7 @@
   }
 
   function qualifies(score) {
-    return score > 0 && (ranking.length < MAX_RANK || score > ranking[MAX_RANK - 1].score);
+    return score > 0 && (ranking.length < MAX_RANK || score > ranking[ranking.length - 1].score);
   }
 
   function addRank(entry) {
@@ -110,6 +123,58 @@
     ranking = ranking.slice(0, MAX_RANK);
     save(LS_RANK, ranking);
     return ranking.indexOf(entry);
+  }
+
+  async function fetchRankings() {
+    const apiUrl = typeof RANKING_API_URL !== 'undefined' ? RANKING_API_URL : '/api/ranking';
+    try {
+      const res = await fetch(`${apiUrl}?limit=${MAX_RANK}`, {
+        headers: { 'Accept': 'application/json' },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.rankings)) {
+          ranking = data.rankings;
+          isOnline = true;
+          updateRankBadges();
+          save(LS_RANK, ranking);
+          return ranking;
+        }
+      }
+    } catch (_) {
+      // offline fallback
+    }
+    isOnline = false;
+    updateRankBadges();
+    return ranking;
+  }
+
+  async function submitScore(entry) {
+    const localIdx = addRank(entry);
+    const apiUrl = typeof RANKING_API_URL !== 'undefined' ? RANKING_API_URL : '/api/ranking';
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          isOnline = true;
+          updateRankBadges();
+          await fetchRankings();
+          const onlineIdx = ranking.findIndex(
+            (r) => r.name === entry.name && r.score === entry.score && r.lines === entry.lines
+          );
+          return onlineIdx >= 0 ? onlineIdx : localIdx;
+        }
+      }
+    } catch (_) {
+      isOnline = false;
+      updateRankBadges();
+    }
+    return localIdx;
   }
 
   // ---- HUD ------------------------------------------------------------------
@@ -187,6 +252,7 @@
     audio.resetBgm();
     game.reset();
     renderRank(el.startBoard, 5);
+    fetchRankings().then(() => renderRank(el.startBoard, 5));
     showScreen('start');
     el.pauseBtn.textContent = '⏸';
   }
@@ -242,13 +308,13 @@
     pop(`LEVEL ${lv}`, 'level');
     bump(el.level);
   });
-  game.on('gameover', (r) => {
+  game.on('gameover', async (r) => {
     audio.stopBgm();
     audio.gameOver();
     el.overScore.textContent = fmt(r.score);
     el.overLines.textContent = r.lines;
     el.overLevel.textContent = r.level;
-    const q = qualifies(r.score);
+    let q = qualifies(r.score);
     pendingResult = q ? r : null;
     el.nameForm.hidden = !q;
     renderRank(el.overBoard, MAX_RANK);
@@ -257,25 +323,37 @@
       el.nameInput.value = settings.name || '';
       setTimeout(() => el.nameInput.focus(), 50);
     }
+
+    // Refresh online rankings from D1 and re-evaluate qualification
+    await fetchRankings();
+    q = qualifies(r.score);
+    if (!pendingResult && q) {
+      pendingResult = r;
+      el.nameForm.hidden = false;
+      el.nameInput.value = settings.name || '';
+    }
+    renderRank(el.overBoard, MAX_RANK);
   });
 
   // ---- UI wiring ------------------------------------------------------------
-  el.nameForm.addEventListener('submit', (e) => {
+  el.nameForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!pendingResult) return;
     const name = (el.nameInput.value.trim() || 'PLAYER').slice(0, 10);
     settings.name = name;
     save(LS_SETTINGS, settings);
-    const idx = addRank({
+    const entry = {
       name,
       score: pendingResult.score,
       lines: pendingResult.lines,
       level: pendingResult.level,
       date: new Date().toISOString(),
-    });
+    };
     pendingResult = null;
     el.nameForm.hidden = true;
     el.nameInput.blur();
+
+    const idx = await submitScore(entry);
     renderRank(el.overBoard, MAX_RANK, idx);
     hud.best = -1;
   });
@@ -384,6 +462,11 @@
   buildLevelPicker();
   syncSoundButtons();
   renderRank(el.startBoard, 5);
+  fetchRankings().then(() => {
+    renderRank(el.startBoard, 5);
+    hud.best = -1;
+    updateHud();
+  });
   showScreen('start');
   resize();
   requestAnimationFrame(frame);

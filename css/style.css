@@ -348,6 +348,27 @@ kbd {
 .board-table tr.me td { color: var(--accent-3); font-weight: 700; }
 .board-table .empty { text-align: center; color: var(--muted); padding: 10px; }
 
+.rank-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-left: 6px;
+  font-size: 9px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  vertical-align: middle;
+}
+.rank-badge.online {
+  background: rgba(92, 242, 138, 0.18);
+  color: #5cf28a;
+  border: 1px solid rgba(92, 242, 138, 0.4);
+}
+.rank-badge.local {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+
 /* ---- small laptop windows -------------------------------------------------- */
 @media (max-width: 1000px) {
   .layout { grid-template-columns: 170px minmax(0, 1fr) 170px; gap: 14px; padding: 0 18px 16px; }

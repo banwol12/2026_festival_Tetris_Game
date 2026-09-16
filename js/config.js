@@ -80,3 +80,7 @@ function gravityMs(level) {
   const l = Math.min(level, CFG.MAX_SPEED_LEVEL) - 1;
   return Math.max(Math.pow(0.8 - l * 0.007, l) * 1000, 8);
 }
+
+// Online ranking API endpoint (defaults to deployed Cloudflare Worker, can be overridden via window.TETRIS_API_URL)
+const RANKING_API_URL = (typeof window !== 'undefined' && window.TETRIS_API_URL) || 'https://digitalarts-tetris.hjahn0523.workers.dev/api/ranking';
+
