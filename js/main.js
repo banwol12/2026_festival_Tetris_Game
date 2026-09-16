@@ -43,6 +43,7 @@
     time: $('#time'),
     best: $('#best'),
     overlay: $('#overlay'),
+    hearts: $('#hearts'),
     screens: { start: $('#screen-start'), pause: $('#screen-pause'), over: $('#screen-over') },
     startBtn: $('#btn-start'),
     resumeBtn: $('#btn-resume'),
@@ -151,6 +152,46 @@
     while (el.fx.children.length > 4) el.fx.firstChild.remove();
   }
 
+  const HEART_SVG = '<svg viewBox="0 0 32 29" aria-hidden="true"><path fill="currentColor" ' +
+    'd="M23.6 0c-3.4 0-6.3 2.7-7.6 5.6C14.7 2.7 11.8 0 8.4 0 3.8 0 0 3.8 0 8.4c0 9.4 9.5 11.9 16 21.2 ' +
+    '6.1-9.3 16-12.1 16-21.2C32 3.8 28.2 0 23.6 0z"/></svg>';
+  const HEART_COLORS = ['#ff47c0', '#ff9485', '#ffffff', '#ffb3dd', '#ff47c0'];
+
+  // Hearts burst out of the cleared rows and drift down while fading.
+  function burstHearts(rows) {
+    const rect = el.wrap.getBoundingClientRect();
+    const cell = renderer.cell;
+    const avgRow = rows.reduce((a, b) => a + b, 0) / rows.length;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + (avgRow - CFG.HIDDEN + 0.5) * cell;
+    const count = 26;
+    for (let i = 0; i < count; i++) {
+      const h = document.createElement('span');
+      h.className = 'heart';
+      h.innerHTML = HEART_SVG;
+      const size = cell * (0.45 + Math.random() * 0.75);
+      h.style.width = `${size}px`;
+      h.style.height = `${size}px`;
+      h.style.left = `${cx - size / 2 + (Math.random() - 0.5) * rect.width * 0.6}px`;
+      h.style.top = `${cy - size / 2}px`;
+      h.style.color = HEART_COLORS[i % HEART_COLORS.length];
+      const angle = (i / count) * Math.PI * 2 + Math.random() * 0.6;
+      const dist = cell * (3 + Math.random() * 8);
+      const dx = Math.cos(angle) * dist;
+      const dy = Math.sin(angle) * dist * 0.8;
+      const rot = (Math.random() - 0.5) * 90;
+      const dur = 1100 + Math.random() * 700;
+      el.hearts.appendChild(h);
+      const anim = h.animate([
+        { transform: 'translate(0, 0) scale(0.15) rotate(0deg)', opacity: 1 },
+        { transform: `translate(${dx * 0.5}px, ${dy * 0.5}px) scale(1.3) rotate(${rot * 0.4}deg)`, opacity: 1, offset: 0.25 },
+        { transform: `translate(${dx * 0.85}px, ${dy * 0.85 + cell * 0.4}px) scale(1) rotate(${rot * 0.8}deg)`, opacity: 1, offset: 0.62 },
+        { transform: `translate(${dx}px, ${dy + cell * 1.6}px) scale(0.7) rotate(${rot}deg)`, opacity: 0 },
+      ], { duration: dur, easing: 'cubic-bezier(0.2, 0.8, 0.3, 1)', fill: 'forwards' });
+      anim.onfinish = () => h.remove();
+    }
+  }
+
   // ---- game flow ------------------------------------------------------------
   function startGame() {
     audio.ensure();
@@ -222,7 +263,10 @@
   game.on('hold', () => audio.hold());
   game.on('harddrop', () => audio.hardDrop());
   game.on('lock', () => audio.lock());
-  game.on('clearstart', ({ count, tspin }) => audio.clear(count, tspin));
+  game.on('clearstart', ({ rows, count, tspin }) => {
+    audio.clear(count, tspin);
+    if (count === 4) burstHearts(rows);
+  });
   game.on('score', ({ points, lines, tspin, b2b, combo }) => {
     let label = '';
     if (tspin) label = 'T-SPIN' + (lines ? ' ' + LINE_NAMES[lines] : '');
@@ -342,6 +386,10 @@
     renderer.drawPreviews();
     updateHud();
     requestAnimationFrame(frame);
+  }
+
+  if (new URLSearchParams(location.search).has('debug')) {
+    window.__tetris = { game, burstHearts };
   }
 
   // ---- init -----------------------------------------------------------------
