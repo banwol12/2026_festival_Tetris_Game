@@ -71,7 +71,7 @@ body.playing .bg { opacity: 0; }
 /* ---- in-game: black board on a bright pink field ---------------------------- */
 body.playing {
   /* dusty, slightly greyed pink (Sanrio-ish) — not neon */
-  background: radial-gradient(130% 110% at 18% 0%, #ecb0c8 0%, #e09cb7 40%, #d48aa8 72%, #c47898 100%);
+  background: radial-gradient(130% 110% at 18% 0%, #d99ab4 0%, #cc87a3 40%, #bf7594 72%, #ae6383 100%);
 }
 body.playing .title { color: rgba(46, 4, 32, 0.75); }
 body.playing .title-year { background: rgba(46, 4, 32, 0.2); color: #2e0420; }
