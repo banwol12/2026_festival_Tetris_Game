@@ -94,6 +94,7 @@ class Game {
     this.lockResets = 0;
     this.lowestY = p.y;
     this.lastRotated = false;
+    this.lastKickIndex = -1;
     if (this.collides(p.matrix, p.x, p.y)) {
       if (!this.collides(p.matrix, p.x, p.y - 1)) {
         p.y -= 1;
@@ -157,6 +158,7 @@ class Game {
     const p = this.piece;
     if (this.collides(p.matrix, p.x + dx, p.y)) return false;
     p.x += dx;
+    this.lastKickIndex = -1;
     this.onMoved(false);
     this.emit('move');
     return true;
@@ -182,6 +184,7 @@ class Game {
         p.x = nx;
         p.y = ny;
         p.rot = to;
+        this.lastKickIndex = i;
         this.onMoved(true);
         this.emit('rotate');
         return true;
@@ -206,6 +209,7 @@ class Game {
     p.y++;
     this.score += SCORE.SOFT_DROP;
     this.lastRotated = false;
+    this.lastKickIndex = -1;
     this.checkLowest();
     return true;
   }
@@ -219,7 +223,10 @@ class Game {
       n++;
     }
     this.score += n * SCORE.HARD_DROP;
-    if (n > 0) this.lastRotated = false;
+    if (n > 0) {
+      this.lastRotated = false;
+      this.lastKickIndex = -1;
+    }
     this.emit('harddrop', n);
     this.lock();
   }
@@ -296,7 +303,7 @@ class Game {
 
   lock() {
     const p = this.piece;
-    const tspin = this.detectTSpin();
+    const spin = this.detectSpin();
     let lockedVisible = false;
     for (let r = 0; r < p.matrix.length; r++) {
       for (let c = 0; c < p.matrix[r].length; c++) {
@@ -323,40 +330,89 @@ class Game {
     for (let r = 0; r < this.board.length; r++) {
       if (this.board[r].every(Boolean)) full.push(r);
     }
-    this.applyScore(full.length, tspin);
+    this.applyScore(full.length, spin);
 
     if (full.length) {
       this.clearing = { rows: full, t: 0 };
-      this.emit('clearstart', { rows: full, count: full.length, tspin });
+      this.emit('clearstart', {
+        rows: full,
+        count: full.length,
+        spin,
+        tspin: !!(spin && spin.type === 'T' && !spin.mini),
+      });
     } else {
       this.spawn();
     }
   }
 
-  // 3-corner rule: T piece, last move was a rotation, 3+ diagonal corners occupied.
-  detectTSpin() {
+  // SRS Spin Detection with All-Mini rule:
+  // - T-Spin: 3-corner rule. Front 2 corners or 5th kick (TST kick) -> Regular T-Spin. Otherwise -> T-Spin Mini.
+  // - T-Spin Mini (All-Mini 2-corner rule): 2 corners filled & immobile.
+  // - All-Mini for non-T pieces (J, L, S, Z, I): Immobile (cannot move left, right, or up) after rotation.
+  detectSpin() {
     const p = this.piece;
-    if (p.type !== 'T' || !this.lastRotated) return false;
-    const cx = p.x + 1;
-    const cy = p.y + 1;
+    if (!p || !this.lastRotated) return null;
+
     const filled = (x, y) =>
       x < 0 || x >= CFG.COLS || y < 0 || y >= this.board.length || !!this.board[y][x];
-    const corners = [
-      filled(cx - 1, cy - 1),
-      filled(cx + 1, cy - 1),
-      filled(cx - 1, cy + 1),
-      filled(cx + 1, cy + 1),
-    ];
-    return corners.filter(Boolean).length >= 3;
+
+    // Immobile check: cannot translate left, right, or up
+    const isImmobile =
+      this.collides(p.matrix, p.x + 1, p.y) &&
+      this.collides(p.matrix, p.x - 1, p.y) &&
+      this.collides(p.matrix, p.x, p.y - 1);
+
+    if (p.type === 'T') {
+      const cx = p.x + 1;
+      const cy = p.y + 1;
+      const tl = filled(cx - 1, cy - 1);
+      const tr = filled(cx + 1, cy - 1);
+      const bl = filled(cx - 1, cy + 1);
+      const br = filled(cx + 1, cy + 1);
+      const corners = (tl ? 1 : 0) + (tr ? 1 : 0) + (bl ? 1 : 0) + (br ? 1 : 0);
+
+      // Front corners based on rotation state
+      // 0: up (tl, tr), 1: right (tr, br), 2: down (bl, br), 3: left (tl, bl)
+      let frontCorners = 0;
+      switch (p.rot) {
+        case 0: frontCorners = (tl ? 1 : 0) + (tr ? 1 : 0); break;
+        case 1: frontCorners = (tr ? 1 : 0) + (br ? 1 : 0); break;
+        case 2: frontCorners = (bl ? 1 : 0) + (br ? 1 : 0); break;
+        case 3: frontCorners = (tl ? 1 : 0) + (bl ? 1 : 0); break;
+      }
+
+      if (corners >= 3) {
+        // Standard guideline: front 2 corners OR 5th kick (index 4 in SRS, TST kick)
+        if (frontCorners === 2 || this.lastKickIndex === 4) {
+          return { type: 'T', mini: false, name: 'T-SPIN' };
+        }
+        return { type: 'T', mini: true, name: 'T-SPIN MINI' };
+      }
+
+      // All-Mini 2-corner rule: at least 2 corners filled and piece is immobile
+      if (corners >= 2 && isImmobile) {
+        return { type: 'T', mini: true, name: 'T-SPIN MINI' };
+      }
+      return null;
+    }
+
+    // All-Mini for non-T pieces (J, L, S, Z, I):
+    if (p.type !== 'O' && isImmobile) {
+      return { type: p.type, mini: true, name: `${p.type}-SPIN MINI` };
+    }
+
+    return null;
   }
 
-  applyScore(n, tspin) {
+  applyScore(n, spin) {
     let pts;
     let difficult;
-    if (tspin) {
-      pts = SCORE.TSPIN[n];
-      difficult = true;
-      this.stats.tspin++;
+    if (spin) {
+      pts = (spin.mini ? SCORE.SPIN_MINI : SCORE.TSPIN)[n] || 0;
+      difficult = true; // All spins/minis maintain & trigger Back-to-Back!
+      if (spin.type === 'T' && !spin.mini) {
+        this.stats.tspin++;
+      }
     } else {
       pts = SCORE.LINES[n];
       difficult = n === 4;
@@ -379,8 +435,15 @@ class Game {
 
     pts *= this.level;
     this.score += pts;
-    if (n > 0 || tspin) {
-      this.emit('score', { points: pts, lines: n, tspin, b2b, combo: this.combo });
+    if (n > 0 || spin) {
+      this.emit('score', {
+        points: pts,
+        lines: n,
+        spin,
+        tspin: !!(spin && spin.type === 'T' && !spin.mini),
+        b2b,
+        combo: this.combo,
+      });
     }
 
     if (n > 0) this.lines += n;

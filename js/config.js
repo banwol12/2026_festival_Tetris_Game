@@ -75,6 +75,7 @@ const KICKS = {
 const SCORE = {
   LINES: [0, 100, 300, 500, 800],
   TSPIN: [400, 800, 1200, 1600],
+  SPIN_MINI: [100, 200, 400, 600],
   SOFT_DROP: 1,
   HARD_DROP: 2,
   COMBO: 50,

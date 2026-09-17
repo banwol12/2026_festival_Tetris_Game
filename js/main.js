@@ -92,6 +92,7 @@
   }
 
   // ---- ranking --------------------------------------------------------------
+
   function bestScore() {
     return ranking.length ? ranking[0].score : 0;
   }
@@ -310,17 +311,21 @@
   game.on('hold', () => audio.hold());
   game.on('harddrop', () => audio.hardDrop());
   game.on('lock', () => audio.lock());
-  game.on('clearstart', ({ rows, count, tspin }) => {
-    audio.clear(count, tspin);
+  game.on('clearstart', ({ rows, count, spin, tspin }) => {
+    audio.clear(count, !!spin || tspin);
     if (count === 4) burstHearts(rows);
   });
-  game.on('score', ({ points, lines, tspin, b2b, combo }) => {
+  game.on('score', ({ points, lines, spin, tspin, b2b, combo }) => {
     let label = '';
-    if (tspin) label = 'T-SPIN' + (lines ? ' ' + LINE_NAMES[lines] : '');
-    else if (lines === 4) label = 'TETRIS!';
+    if (spin) {
+      label = spin.name + (lines ? ' ' + LINE_NAMES[lines] : '');
+    } else if (lines === 4) label = 'TETRIS!';
     else if (lines) label = LINE_NAMES[lines];
     if (b2b) label = 'B2B ' + label;
-    if (label) pop(label, lines === 4 ? 'big' : tspin ? 'big tspin' : '');
+    if (label) {
+      const cls = lines === 4 ? 'big' : spin ? (spin.mini ? 'spin-mini' : 'big tspin') : '';
+      pop(label, cls);
+    }
     if (combo >= 1) pop(`COMBO ×${combo}`, 'combo');
     if (points) pop(`+${fmt(points)}`, 'pts');
   });
