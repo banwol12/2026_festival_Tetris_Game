@@ -4,7 +4,7 @@
   const $ = (s) => document.querySelector(s);
   const LS_SETTINGS = 'festival-tetris:settings';
   const LS_RANK = 'festival-tetris:ranking';
-  const MAX_RANK = 10;
+  const MAX_RANK = 20;
 
   const load = (key, fallback) => {
     try {
@@ -104,11 +104,28 @@
       table.innerHTML = '<tr><td class="empty">아직 기록이 없습니다</td></tr>';
       return;
     }
-    table.innerHTML = rows.map((r, i) => (
-      `<tr class="${i === highlight ? 'me' : ''}">` +
-      `<td class="rk">${i + 1}</td><td class="nm">${esc(r.name)}</td>` +
-      `<td class="sc">${fmt(r.score)}</td><td class="ln">${r.lines}L</td></tr>`
-    )).join('');
+    table.innerHTML = rows.map((r, i) => {
+      const rankNum = i + 1;
+      let topClass = '';
+      let medal = '';
+      if (rankNum === 1) {
+        topClass = 'top-1';
+        medal = '<span class="medal-icon gold" title="1위">🥇</span>';
+      } else if (rankNum === 2) {
+        topClass = 'top-2';
+        medal = '<span class="medal-icon silver" title="2위">🥈</span>';
+      } else if (rankNum === 3) {
+        topClass = 'top-3';
+        medal = '<span class="medal-icon bronze" title="3위">🥉</span>';
+      }
+      return (
+        `<tr class="${topClass} ${i === highlight ? 'me' : ''}">` +
+        `<td class="rk"><span class="rk-val">${medal ? `${medal} ${rankNum}` : rankNum}</span></td>` +
+        `<td class="nm">${esc(r.name)}</td>` +
+        `<td class="sc">${fmt(r.score)}</td>` +
+        `<td class="ln">${r.lines}L</td></tr>`
+      );
+    }).join('');
   }
 
   function qualifies(score) {
@@ -275,8 +292,8 @@
   function toMenu() {
     audio.resetBgm();
     game.reset();
-    renderRank(el.startBoard, 5);
-    fetchRankings().then(() => renderRank(el.startBoard, 5));
+    renderRank(el.startBoard, MAX_RANK);
+    fetchRankings().then(() => renderRank(el.startBoard, MAX_RANK));
     showScreen('start');
     el.pauseBtn.textContent = '⏸';
   }
@@ -457,9 +474,9 @@
 
   // ---- init -----------------------------------------------------------------
   syncSoundButtons();
-  renderRank(el.startBoard, 5);
+  renderRank(el.startBoard, MAX_RANK);
   fetchRankings().then(() => {
-    renderRank(el.startBoard, 5);
+    renderRank(el.startBoard, MAX_RANK);
     hud.best = -1;
     updateHud();
   });

@@ -70,8 +70,8 @@ export default {
       // GET: Retrieve Top Rankings
       if (request.method === 'GET') {
         try {
-          const rawLimit = parseInt(searchParams.get('limit') || '10', 10);
-          const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 10 : rawLimit), 100);
+          const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
+          const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 20 : rawLimit), 100);
 
           const { results } = await env.DB.prepare(`
             SELECT id, name, score, lines, level, created_at

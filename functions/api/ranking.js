@@ -34,8 +34,8 @@ export async function onRequestGet(context) {
   }
 
   const url = new URL(request.url);
-  const rawLimit = parseInt(url.searchParams.get('limit') || '10', 10);
-  const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 10 : rawLimit), 100);
+  const rawLimit = parseInt(url.searchParams.get('limit') || '20', 10);
+  const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 20 : rawLimit), 100);
 
   try {
     const { results } = await env.DB.prepare(`
