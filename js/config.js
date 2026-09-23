@@ -6,14 +6,14 @@ const CFG = {
   ROWS: 20,            // visible rows
   HIDDEN: 2,           // hidden rows above the visible board
   NEXT_COUNT: 1,       // pieces shown in NEXT
-  LOCK_DELAY: 250,     // ms a grounded piece waits before locking (level 1)
-  LOCK_STEP: 20,       // lock delay shrinks this much per level
-  LOCK_MIN: 80,        // floor for the lock delay
+  LOCK_DELAY: 500,     // ms a grounded piece waits before locking (level 1)
+  LOCK_STEP: 40,       // lock delay shrinks this much per level
+  LOCK_MIN: 160,       // floor for the lock delay
   MAX_LOCK_RESETS: 15, // move/rotate resets allowed per lowest row
   SOFT_DROP_MS: 30,    // ms per cell while soft-dropping
-  DAS: 120,            // delayed auto shift (ms)
-  ARR: 20,             // auto repeat rate (ms per cell)
-  CLEAR_MS: 140,       // line clear animation length
+  DAS: 160,            // delayed auto shift (ms)
+  ARR: 30,             // auto repeat rate (ms per cell)
+  CLEAR_MS: 260,       // line clear animation length
   MAX_SPEED_LEVEL: 15, // gravity stops accelerating here (timed mode only)
   POINTS_PER_LEVEL: 1000, // level n needs 1000 * (n-1) * n / 2 points
   MAX_LEVEL: 20,
