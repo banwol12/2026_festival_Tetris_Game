@@ -20,7 +20,18 @@
       <div class="title"><span class="title-name">Digitalarts Tetris</span></div>
       <div class="topbar-actions">
         <button id="btn-sfx" class="icon-btn" type="button" title="효과음 (M)" aria-label="효과음">🔊</button>
-        <button id="btn-bgm" class="icon-btn" type="button" title="배경음악" aria-label="배경음악">🎵</button>
+        <div class="bgm-ctrl">
+          <button id="btn-bgm" class="icon-btn" type="button" title="배경음악 토글" aria-label="배경음악">🎵</button>
+          <button id="btn-bgm-menu" class="track-pill-btn" type="button" title="BGM 곡 선택 (B)" aria-label="BGM 곡 선택">
+            <span class="track-dot"></span>
+            <span id="bgm-current-label">Type A: Korobeiniki</span>
+            <span class="track-arrow">▾</span>
+          </button>
+          <div id="bgm-dropdown" class="bgm-dropdown" hidden>
+            <div class="bgm-dropdown-header">🎵 BGM TRACK SELECT</div>
+            <div id="bgm-dropdown-list" class="bgm-dropdown-list"></div>
+          </div>
+        </div>
         <button id="btn-pause" class="icon-btn" type="button" title="일시정지 (P)" aria-label="일시정지">⏸</button>
         <button id="btn-full" class="icon-btn" type="button" title="전체화면 (F)" aria-label="전체화면">⛶</button>
       </div>
@@ -79,6 +90,15 @@
         <span class="logo-game">Tetris</span>
       </div>
       <p class="tagline">조각이 나오자마자 바닥에 꽂히는 초고속 테트리스<br />점수가 오를수록 고정 시간이 짧아집니다</p>
+      
+      <div class="music-select-box">
+        <div class="music-select-header">
+          <span class="music-select-label">🎵 MUSIC SELECT</span>
+          <span class="music-select-hint">원하는 음악을 선택해 플레이하세요</span>
+        </div>
+        <div class="music-track-grid" id="start-track-grid"></div>
+      </div>
+
       <button id="btn-start" class="btn primary huge" type="button">START <kbd>Enter</kbd></button>
       <p class="keys">
         <span><kbd>←</kbd><kbd>→</kbd> 이동</span>
@@ -86,6 +106,8 @@
         <span><kbd>Z</kbd> 반대 회전</span>
         <span><kbd>Space</kbd> 고정</span>
         <span><kbd>C</kbd> 홀드</span>
+        <span><kbd>B</kbd> BGM 변경</span>
+        <span><kbd>M</kbd> 효과음</span>
         <span><kbd>P</kbd> 일시정지</span>
         <span><kbd>F</kbd> 전체화면</span>
       </p>
@@ -99,6 +121,10 @@
 
     <div id="screen-pause" class="screen">
       <h2 class="screen-title">PAUSED</h2>
+      <div class="pause-music-box">
+        <span class="label">BGM SELECT</span>
+        <div class="music-track-grid compact" id="pause-track-grid"></div>
+      </div>
       <div class="btn-row">
         <button id="btn-resume" class="btn primary" type="button">계속 <kbd>P</kbd></button>
         <button id="btn-restart" class="btn" type="button">다시 시작 <kbd>R</kbd></button>
@@ -139,6 +165,8 @@
     <span class="sep">·</span>
     <span>백엔드 안현준</span>
   </footer>
+
+  <div id="toast" class="toast" aria-live="polite" hidden></div>
 
   <script src="js/config.js"></script>
   <script src="js/audio.js"></script>

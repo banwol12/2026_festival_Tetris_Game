@@ -530,11 +530,61 @@ body.playing .credits {
   font-family: var(--mono);
   font-weight: 700;
 }
+.board-table th {
+  padding: 8px 10px;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(13, 18, 32, 0.96);
+  backdrop-filter: blur(8px);
+}
+.board-table th.sc,
+.board-table th.ln,
+.board-table th.dt {
+  text-align: right;
+}
 .board-table .ln {
   text-align: right;
   color: var(--muted);
   width: 3.8em;
 }
+.board-table .dt {
+  text-align: right;
+  font-family: var(--mono);
+  font-size: clamp(10px, 1.3vh, 12px);
+  color: var(--muted);
+  width: 7.2em;
+}
+.board-table td.dt .dt-val {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-weight: 500;
+  cursor: help;
+  transition: all 0.15s ease;
+}
+.board-table tr:hover td.dt .dt-val {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+.board-table tr.top-1 td.dt { color: #fef08a; }
+.board-table tr.top-2 td.dt { color: #cbd5e1; }
+.board-table tr.top-3 td.dt { color: #fdba74; }
+.board-table tr.top-1 td.dt .dt-val { background: rgba(255, 215, 0, 0.1); border-color: rgba(255, 215, 0, 0.3); }
+.board-table tr.top-2 td.dt .dt-val { background: rgba(200, 220, 240, 0.1); border-color: rgba(200, 220, 240, 0.3); }
+.board-table tr.top-3 td.dt .dt-val { background: rgba(251, 146, 60, 0.1); border-color: rgba(251, 146, 60, 0.3); }
+.board-table tr.me td.dt { color: var(--pink) !important; }
+.board-table tr.me td.dt .dt-val { background: rgba(255, 71, 192, 0.15); border-color: rgba(255, 71, 192, 0.35); }
 
 /* 🥇 1위 특별 연출 (Gold) */
 .board-table tr.top-1 {
@@ -625,3 +675,390 @@ body.playing .credits {
   color: var(--muted);
   padding: 3vh;
 }
+
+/* ---- BGM Selector (Topbar) ------------------------------------------------- */
+.bgm-ctrl {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.track-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.track-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.track-pill-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.track-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--pink);
+  box-shadow: 0 0 8px var(--pink);
+  transition: all 0.25s ease;
+}
+
+.icon-btn.off ~ .track-pill-btn .track-dot {
+  background: var(--muted);
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+.track-arrow {
+  font-size: 10px;
+  opacity: 0.6;
+  margin-left: 2px;
+  transition: transform 0.2s;
+}
+
+.bgm-ctrl.open .track-arrow {
+  transform: rotate(180deg);
+}
+
+.bgm-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 120;
+  min-width: 280px;
+  padding: 8px;
+  background: rgba(12, 16, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  animation: dropdownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.bgm-dropdown-header {
+  padding: 8px 12px 6px;
+  font-family: var(--display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 6px;
+}
+
+.bgm-dropdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bgm-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.bgm-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.bgm-dropdown-item.active {
+  background: rgba(255, 71, 192, 0.14);
+  border-color: rgba(255, 71, 192, 0.4);
+}
+
+.bgm-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bgm-item-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.bgm-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bgm-item-name {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bgm-item-desc {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bgm-dropdown-item.active .bgm-item-name {
+  color: var(--pink);
+}
+
+/* In-game theme adaptation for topbar BGM */
+body.playing .track-pill-btn {
+  background: rgba(110, 28, 70, 0.14);
+  border-color: rgba(110, 28, 70, 0.2);
+  color: #34081f;
+}
+body.playing .track-pill-btn:hover {
+  background: rgba(110, 28, 70, 0.24);
+}
+body.playing .bgm-dropdown {
+  background: rgba(255, 245, 250, 0.97);
+  border-color: rgba(110, 28, 70, 0.2);
+  box-shadow: 0 18px 45px rgba(120, 30, 80, 0.25);
+}
+body.playing .bgm-dropdown-header {
+  color: rgba(110, 28, 70, 0.7);
+  border-color: rgba(110, 28, 70, 0.1);
+}
+body.playing .bgm-dropdown-item {
+  color: #34081f;
+}
+body.playing .bgm-dropdown-item:hover {
+  background: rgba(110, 28, 70, 0.08);
+}
+body.playing .bgm-dropdown-item.active {
+  background: rgba(255, 71, 192, 0.15);
+  border-color: rgba(255, 71, 192, 0.4);
+}
+body.playing .bgm-dropdown-item.active .bgm-item-name {
+  color: #c2287a;
+}
+body.playing .bgm-item-desc {
+  color: rgba(110, 28, 70, 0.65);
+}
+
+/* ---- Music Select Box (Start & Pause screens) ------------------------------- */
+.music-select-box {
+  width: min(560px, 92vw);
+  margin: 1.6vh auto 2.2vh;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.music-select-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.music-select-label {
+  font-family: var(--display);
+  font-size: clamp(12px, 1.6vh, 15px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--sky);
+}
+
+.music-select-hint {
+  font-size: clamp(10px, 1.2vh, 12px);
+  color: var(--muted);
+}
+
+.music-track-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .music-track-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.music-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+.music-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.music-card:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.music-card.active {
+  background: linear-gradient(135deg, rgba(161, 211, 232, 0.16), rgba(255, 71, 192, 0.18));
+  border-color: var(--pink);
+  box-shadow: 0 0 16px rgba(255, 71, 192, 0.28);
+}
+
+.card-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-icon {
+  font-size: 20px;
+}
+
+.card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-code {
+  font-size: 10px;
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--sky);
+}
+
+.card-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(12px, 1.5vh, 14px);
+  color: var(--text);
+}
+
+.music-card.active .card-title {
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 71, 192, 0.6);
+}
+
+.card-desc {
+  font-size: clamp(10px, 1.2vh, 11px);
+  color: var(--muted);
+}
+
+/* Equalizer Bars Animation */
+.eq-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+  width: 15px;
+}
+
+.eq-bar {
+  width: 3px;
+  background: var(--pink);
+  border-radius: 2px;
+  height: 4px;
+}
+
+.music-card.active .eq-bar:nth-child(1) {
+  animation: eqBounce 0.6s ease-in-out infinite alternate;
+}
+.music-card.active .eq-bar:nth-child(2) {
+  animation: eqBounce 0.45s ease-in-out infinite alternate 0.15s;
+}
+.music-card.active .eq-bar:nth-child(3) {
+  animation: eqBounce 0.55s ease-in-out infinite alternate 0.3s;
+}
+
+@keyframes eqBounce {
+  0% { height: 3px; }
+  100% { height: 16px; }
+}
+
+/* Pause screen compact music picker */
+.pause-music-box {
+  margin: 1.5vh auto;
+  width: min(480px, 90vw);
+}
+.pause-music-box .label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+.music-track-grid.compact {
+  gap: 8px;
+}
+.music-track-grid.compact .music-card {
+  padding: 8px 12px;
+}
+.music-track-grid.compact .card-desc {
+  display: none;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  padding: 10px 20px;
+  border-radius: 20px;
+  background: rgba(13, 18, 32, 0.92);
+  border: 1px solid var(--pink);
+  box-shadow: 0 8px 32px rgba(255, 71, 192, 0.35);
+  color: #fff;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  animation: toastFade 0.25s ease-out;
+}
+
+@keyframes toastFade {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+

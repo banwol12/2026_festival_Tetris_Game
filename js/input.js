@@ -49,6 +49,7 @@ class Input {
         case 'Enter': a.enter(); break;
         case 'KeyR': a.restart(); break;
         case 'KeyM': a.mute(); break;
+        case 'KeyB': if (a.cycleBgm) a.cycleBgm(); break;
         case 'KeyF': a.fullscreen(); break;
         default: break;
       }

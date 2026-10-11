@@ -1,18 +1,106 @@
 'use strict';
 
-// Korobeiniki (traditional, public domain) — [midi note, beats]. 0 = rest.
-const MELODY = [
-  [76, 1], [71, 0.5], [72, 0.5], [74, 1], [72, 0.5], [71, 0.5],
-  [69, 1], [69, 0.5], [72, 0.5], [76, 1], [74, 0.5], [72, 0.5],
-  [71, 1.5], [72, 0.5], [74, 1], [76, 1],
-  [72, 1], [69, 1], [69, 1], [0, 1],
-  [0, 0.5], [74, 1], [77, 0.5], [81, 1], [79, 0.5], [77, 0.5],
-  [76, 1.5], [72, 0.5], [76, 1], [74, 0.5], [72, 0.5],
-  [71, 1], [71, 0.5], [72, 0.5], [74, 1], [76, 1],
-  [72, 1], [69, 1], [69, 1], [0, 1],
-];
-// Bass root per bar (8 bars of 4 beats), alternating root / fifth per beat.
-const BASS = [40, 45, 47, 40, 38, 36, 47, 40];
+// ---- BGM Tracks Configuration ----------------------------------------------
+// Each track contains [midi note, beats]. 0 = rest.
+// All tracks are calibrated to exactly 32 beats (8 bars of 4 beats).
+const TRACKS = {
+  korobeiniki: {
+    id: 'korobeiniki',
+    code: 'Type A',
+    name: 'Korobeiniki',
+    desc: '클래식 오리지널 테마',
+    icon: '🎻',
+    baseTempo: 165,
+    synthType: 'square',
+    bassType: 'triangle',
+    melodyVol: 0.1,
+    bassVol: 0.16,
+    bassInterval: 7,
+    melody: [
+      [76, 1], [71, 0.5], [72, 0.5], [74, 1], [72, 0.5], [71, 0.5],
+      [69, 1], [69, 0.5], [72, 0.5], [76, 1], [74, 0.5], [72, 0.5],
+      [71, 1.5], [72, 0.5], [74, 1], [76, 1],
+      [72, 1], [69, 1], [69, 1], [0, 1],
+      [0, 0.5], [74, 1], [77, 0.5], [81, 1], [79, 0.5], [77, 0.5],
+      [76, 1.5], [72, 0.5], [76, 1], [74, 0.5], [72, 0.5],
+      [71, 1], [71, 0.5], [72, 0.5], [74, 1], [76, 1],
+      [72, 1], [69, 1], [69, 1], [0, 1],
+    ],
+    bass: [40, 45, 47, 40, 38, 36, 47, 40],
+  },
+  troika: {
+    id: 'troika',
+    code: 'Type B',
+    name: 'Troika',
+    desc: '경쾌한 게임보이 테마 B',
+    icon: '🪗',
+    baseTempo: 160,
+    synthType: 'square',
+    bassType: 'triangle',
+    melodyVol: 0.1,
+    bassVol: 0.16,
+    bassInterval: 7,
+    melody: [
+      [69, 1], [72, 1], [76, 1], [74, 0.5], [72, 0.5],
+      [71, 1], [72, 1], [71, 1], [68, 1],
+      [69, 1], [72, 1], [76, 1], [74, 0.5], [72, 0.5],
+      [71, 1], [72, 0.5], [71, 0.5], [69, 1], [0, 1],
+      [72, 1], [74, 1], [76, 1], [79, 1],
+      [77, 1], [76, 1], [74, 1.5], [76, 0.5],
+      [77, 1], [76, 1], [74, 0.5], [72, 0.5], [71, 1],
+      [69, 1], [72, 1], [69, 1], [0, 1],
+    ],
+    bass: [45, 40, 45, 45, 48, 43, 40, 45],
+  },
+  kalinka: {
+    id: 'kalinka',
+    code: 'Type C',
+    name: 'Kalinka',
+    desc: '신나는 축제 댄스 테마',
+    icon: '🎺',
+    baseTempo: 175,
+    synthType: 'square',
+    bassType: 'triangle',
+    melodyVol: 0.1,
+    bassVol: 0.17,
+    bassInterval: 7,
+    melody: [
+      [69, 0.5], [69, 0.5], [72, 0.5], [71, 0.5], [69, 1], [64, 1],
+      [68, 1], [68, 0.5], [71, 0.5], [69, 1], [64, 1],
+      [69, 0.5], [69, 0.5], [72, 0.5], [71, 0.5], [69, 1], [72, 0.5], [74, 0.5],
+      [76, 1.5], [74, 0.5], [72, 1], [71, 1],
+      [69, 0.5], [69, 0.5], [72, 0.5], [71, 0.5], [69, 1], [64, 1],
+      [68, 1], [68, 0.5], [71, 0.5], [69, 1], [64, 1],
+      [71, 1], [72, 0.5], [74, 0.5], [76, 1], [71, 1],
+      [69, 2], [69, 1], [0, 1],
+    ],
+    bass: [45, 40, 45, 40, 45, 40, 47, 45],
+  },
+  cyber: {
+    id: 'cyber',
+    code: 'Type D',
+    name: 'Cyber Pulse',
+    desc: '네온 신스웨이브 아르페지오',
+    icon: '⚡',
+    baseTempo: 140,
+    synthType: 'sawtooth',
+    bassType: 'square',
+    melodyVol: 0.08,
+    bassVol: 0.13,
+    bassInterval: 12,
+    melody: [
+      [62, 0.5], [65, 0.5], [69, 0.5], [74, 0.5], [72, 0.5], [69, 0.5], [65, 0.5], [69, 0.5],
+      [58, 0.5], [62, 0.5], [65, 0.5], [70, 0.5], [69, 0.5], [65, 0.5], [62, 0.5], [65, 0.5],
+      [60, 0.5], [64, 0.5], [67, 0.5], [72, 0.5], [70, 0.5], [67, 0.5], [64, 0.5], [67, 0.5],
+      [57, 0.5], [60, 0.5], [64, 0.5], [69, 0.5], [67, 0.5], [64, 0.5], [60, 0.5], [64, 0.5],
+      [65, 0.5], [69, 0.5], [72, 0.5], [77, 0.5], [76, 0.5], [72, 0.5], [69, 0.5], [72, 0.5],
+      [67, 0.5], [70, 0.5], [74, 0.5], [79, 0.5], [77, 0.5], [74, 0.5], [70, 0.5], [74, 0.5],
+      [70, 0.5], [74, 0.5], [77, 0.5], [82, 0.5], [81, 0.5], [77, 0.5], [74, 0.5], [77, 0.5],
+      [69, 0.5], [73, 0.5], [76, 0.5], [81, 0.5], [76, 0.5], [73, 0.5], [69, 0.5], [0, 0.5],
+    ],
+    bass: [38, 34, 36, 33, 41, 43, 34, 33],
+  },
+};
 
 class AudioEngine {
   constructor() {
@@ -21,7 +109,10 @@ class AudioEngine {
     this.bgmOn = true;
     this.bgm = null;
     this.timer = null;
+    this.trackId = 'korobeiniki';
+    this.currentLevel = 1;
     this.tempo = 165;
+    this.updateTempo();
   }
 
   ensure() {
@@ -128,9 +219,44 @@ class AudioEngine {
     );
   }
 
-  // ---- BGM sequencer --------------------------------------------------------
+  // ---- BGM sequencer & track selection --------------------------------------
+  getTracks() {
+    return Object.values(TRACKS);
+  }
+
+  getCurrentTrack() {
+    return TRACKS[this.trackId] || TRACKS.korobeiniki;
+  }
+
+  updateTempo() {
+    const track = this.getCurrentTrack();
+    this.tempo = Math.min(track.baseTempo + 45, track.baseTempo + (this.currentLevel - 1) * 3);
+  }
+
   setLevel(level) {
-    this.tempo = Math.min(210, 165 + (level - 1) * 4);
+    this.currentLevel = Math.max(1, level || 1);
+    this.updateTempo();
+  }
+
+  setTrack(trackId, preview = false) {
+    if (!TRACKS[trackId]) return;
+    const isPlaying = !!this.timer;
+    this.trackId = trackId;
+    this.updateTempo();
+    if (isPlaying || preview) {
+      this.resetBgm();
+      if (this.bgmOn) {
+        this.startBgm(this.currentLevel);
+      }
+    }
+  }
+
+  nextTrack() {
+    const keys = Object.keys(TRACKS);
+    const idx = keys.indexOf(this.trackId);
+    const nextId = keys[(idx + 1) % keys.length];
+    this.setTrack(nextId, !!this.timer);
+    return this.getCurrentTrack();
   }
 
   startBgm(level) {
@@ -139,7 +265,7 @@ class AudioEngine {
     if (!ctx) return;
     if (level) this.setLevel(level);
     if (this.timer) return;
-    const now = ctx.currentTime + 0.1;
+    const now = ctx.currentTime + 0.05;
     if (!this.bgm) this.bgm = { mi: 0, bi: 0 };
     this.bgm.mt = now;
     this.bgm.bt = now;
@@ -165,25 +291,39 @@ class AudioEngine {
     const b = this.bgm;
     const spb = 60 / this.tempo;
     const ahead = ctx.currentTime + 0.25;
+    const track = this.getCurrentTrack();
+    const melody = track.melody;
+    const bass = track.bass;
+    const bassInterval = track.bassInterval != null ? track.bassInterval : 7;
+
     while (b.mt < ahead) {
-      const [m, beats] = MELODY[b.mi];
+      const [m, beats] = melody[b.mi];
       if (m) {
         this.play(this.midi(m), {
-          type: 'square', dur: beats * spb * 0.8, vol: 0.1, at: b.mt, dest: this.bgmGain,
+          type: track.synthType || 'square',
+          dur: beats * spb * 0.8,
+          vol: track.melodyVol || 0.1,
+          at: b.mt,
+          dest: this.bgmGain,
         });
       }
       b.mt += beats * spb;
-      b.mi = (b.mi + 1) % MELODY.length;
+      b.mi = (b.mi + 1) % melody.length;
     }
+
     while (b.bt < ahead) {
-      const bar = Math.floor(b.bi / 4) % BASS.length;
-      const root = BASS[bar];
-      const m = b.bi % 2 === 0 ? root : root + 7;
+      const bar = Math.floor(b.bi / 4) % bass.length;
+      const root = bass[bar];
+      const m = b.bi % 2 === 0 ? root : root + bassInterval;
       this.play(this.midi(m), {
-        type: 'triangle', dur: spb * 0.6, vol: 0.16, at: b.bt, dest: this.bgmGain,
+        type: track.bassType || 'triangle',
+        dur: spb * 0.6,
+        vol: track.bassVol || 0.16,
+        at: b.bt,
+        dest: this.bgmGain,
       });
       b.bt += spb;
-      b.bi = (b.bi + 1) % (4 * BASS.length);
+      b.bi = (b.bi + 1) % (4 * bass.length);
     }
   }
 }

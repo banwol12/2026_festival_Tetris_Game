@@ -3,7 +3,7 @@
 (() => {
   const $ = (s) => document.querySelector(s);
   const LS_SETTINGS = 'festival-tetris:settings';
-  const LS_RANK = 'festival-tetris:ranking';
+  const LS_RANK = 'festival-tetris:ranking:v2';
   const MAX_RANK = 20;
 
   const load = (key, fallback) => {
@@ -22,7 +22,7 @@
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
-  const settings = Object.assign({ sfx: true, bgm: true, name: '' }, load(LS_SETTINGS, {}));
+  const settings = Object.assign({ sfx: true, bgm: true, bgmTrack: 'korobeiniki', name: '' }, load(LS_SETTINGS, {}));
   let ranking = load(LS_RANK, []);
   let pendingResult = null;
 
@@ -30,6 +30,7 @@
   const audio = new AudioEngine();
   audio.sfxOn = !!settings.sfx;
   audio.bgmOn = !!settings.bgm;
+  if (settings.bgmTrack) audio.setTrack(settings.bgmTrack);
   const renderer = new Renderer(game, $('#board'), $('#hold'), $('#next'));
 
   const el = {
@@ -60,6 +61,14 @@
     startBoard: $('#start-board'),
     sfxBtn: $('#btn-sfx'),
     bgmBtn: $('#btn-bgm'),
+    bgmCtrl: $('.bgm-ctrl'),
+    bgmMenuBtn: $('#btn-bgm-menu'),
+    bgmLabel: $('#bgm-current-label'),
+    bgmDropdown: $('#bgm-dropdown'),
+    bgmDropdownList: $('#bgm-dropdown-list'),
+    startTrackGrid: $('#start-track-grid'),
+    pauseTrackGrid: $('#pause-track-grid'),
+    toast: $('#toast'),
     pauseBtn: $('#btn-pause'),
     fullBtn: $('#btn-full'),
   };
@@ -89,9 +98,54 @@
     Object.entries(el.screens).forEach(([k, s]) => s.classList.toggle('active', k === name));
     el.overlay.hidden = !name;
     document.body.classList.toggle('playing', !name);
+    if (name === 'start' || name === 'pause') renderTrackSelectors();
   }
 
   // ---- ranking --------------------------------------------------------------
+
+  function fmtDate(raw) {
+    if (!raw) return '-';
+    let str = String(raw);
+    if (!str.includes('T') && !str.endsWith('Z')) {
+      str = str.replace(' ', 'T') + 'Z';
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return '-';
+
+    const now = new Date();
+    const diffMs = now - d;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+
+    if (diffSec >= 0 && diffSec < 60) return '방금 전';
+    if (diffMin >= 0 && diffMin < 60) return `${diffMin}분 전`;
+
+    const isToday = d.toDateString() === now.toDateString();
+    const pad = (n) => String(n).padStart(2, '0');
+    const hh = pad(d.getHours());
+    const mm = pad(d.getMinutes());
+
+    if (isToday) return `오늘 ${hh}:${mm}`;
+
+    const month = pad(d.getMonth() + 1);
+    const day = pad(d.getDate());
+    if (d.getFullYear() === now.getFullYear()) {
+      return `${month}.${day} ${hh}:${mm}`;
+    }
+    return `${String(d.getFullYear()).slice(2)}.${month}.${day}`;
+  }
+
+  function fmtFullDate(raw) {
+    if (!raw) return '';
+    let str = String(raw);
+    if (!str.includes('T') && !str.endsWith('Z')) {
+      str = str.replace(' ', 'T') + 'Z';
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
 
   function bestScore() {
     return ranking.length ? ranking[0].score : 0;
@@ -101,10 +155,19 @@
     if (!table) return;
     const rows = ranking.slice(0, limit);
     if (!rows.length) {
-      table.innerHTML = '<tr><td class="empty">아직 기록이 없습니다</td></tr>';
+      table.innerHTML = '<tr><td class="empty" colspan="5">아직 기록이 없습니다</td></tr>';
       return;
     }
-    table.innerHTML = rows.map((r, i) => {
+    const thead = (
+      '<thead><tr>' +
+        '<th class="rk">순위</th>' +
+        '<th class="nm">이름</th>' +
+        '<th class="sc">점수</th>' +
+        '<th class="ln">줄</th>' +
+        '<th class="dt">기록일시</th>' +
+      '</tr></thead>'
+    );
+    const tbody = rows.map((r, i) => {
       const rankNum = i + 1;
       let topClass = '';
       let medal = '';
@@ -118,14 +181,19 @@
         topClass = 'top-3';
         medal = '<span class="medal-icon bronze" title="3위">🥉</span>';
       }
+      const rawDate = r.created_at || r.date;
+      const dateDisplay = fmtDate(rawDate);
+      const fullDate = fmtFullDate(rawDate);
       return (
         `<tr class="${topClass} ${i === highlight ? 'me' : ''}">` +
         `<td class="rk"><span class="rk-val">${medal ? `${medal} ${rankNum}` : rankNum}</span></td>` +
         `<td class="nm">${esc(r.name)}</td>` +
         `<td class="sc">${fmt(r.score)}</td>` +
-        `<td class="ln">${r.lines}L</td></tr>`
+        `<td class="ln">${r.lines}L</td>` +
+        `<td class="dt" title="${esc(fullDate)}"><span class="dt-val">${esc(dateDisplay)}</span></td></tr>`
       );
     }).join('');
+    table.innerHTML = thead + '<tbody>' + tbody + '</tbody>';
   }
 
   function qualifies(score) {
@@ -133,6 +201,9 @@
   }
 
   function addRank(entry) {
+    if (!entry.created_at && entry.date) {
+      entry.created_at = entry.date;
+    }
     ranking.push(entry);
     ranking.sort((a, b) => b.score - a.score || b.lines - a.lines);
     ranking = ranking.slice(0, MAX_RANK);
@@ -392,6 +463,7 @@
       lines: pendingResult.lines,
       level: pendingResult.level,
       date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
     };
     pendingResult = null;
     el.nameForm.hidden = true;
@@ -414,6 +486,105 @@
     el.sfxBtn.classList.toggle('off', !audio.sfxOn);
     el.sfxBtn.textContent = audio.sfxOn ? '🔊' : '🔇';
     el.bgmBtn.classList.toggle('off', !audio.bgmOn);
+    renderTrackSelectors();
+  }
+
+  // ---- BGM Track Selection --------------------------------------------------
+  let toastTimer = null;
+  function showToast(msg) {
+    if (!el.toast) return;
+    el.toast.textContent = msg;
+    el.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      el.toast.hidden = true;
+    }, 1800);
+  }
+
+  function renderTrackSelectors() {
+    const tracks = audio.getTracks();
+    const current = audio.getCurrentTrack();
+
+    if (el.bgmLabel) {
+      el.bgmLabel.textContent = `${current.code}: ${current.name}`;
+    }
+
+    if (el.bgmDropdownList) {
+      el.bgmDropdownList.innerHTML = tracks.map((t) => {
+        const isActive = t.id === current.id;
+        return (
+          `<button class="bgm-dropdown-item ${isActive ? 'active' : ''}" type="button" data-track="${t.id}">` +
+            `<div class="bgm-item-main">` +
+              `<span class="bgm-item-icon">${t.icon}</span>` +
+              `<div class="bgm-item-info">` +
+                `<span class="bgm-item-name">${t.code}: ${t.name}</span>` +
+                `<span class="bgm-item-desc">${t.desc}</span>` +
+              `</div>` +
+            `</div>` +
+            (isActive && audio.bgmOn ? '<div class="eq-bars"><i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i></div>' : '') +
+          `</button>`
+        );
+      }).join('');
+    }
+
+    if (el.startTrackGrid) {
+      el.startTrackGrid.innerHTML = tracks.map((t) => {
+        const isActive = t.id === current.id;
+        return (
+          `<button class="music-card ${isActive ? 'active' : ''}" type="button" data-track="${t.id}">` +
+            `<div class="card-main">` +
+              `<span class="card-icon">${t.icon}</span>` +
+              `<div class="card-info">` +
+                `<span class="card-code">${t.code}</span>` +
+                `<span class="card-title">${t.name}</span>` +
+                `<span class="card-desc">${t.desc}</span>` +
+              `</div>` +
+            `</div>` +
+            (isActive && audio.bgmOn ? '<div class="eq-bars"><i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i></div>' : '') +
+          `</button>`
+        );
+      }).join('');
+    }
+
+    if (el.pauseTrackGrid) {
+      el.pauseTrackGrid.innerHTML = tracks.map((t) => {
+        const isActive = t.id === current.id;
+        return (
+          `<button class="music-card ${isActive ? 'active' : ''}" type="button" data-track="${t.id}">` +
+            `<div class="card-main">` +
+              `<span class="card-icon">${t.icon}</span>` +
+              `<div class="card-info">` +
+                `<span class="card-code">${t.code}</span>` +
+                `<span class="card-title">${t.name}</span>` +
+              `</div>` +
+            `</div>` +
+            (isActive && audio.bgmOn ? '<div class="eq-bars"><i class="eq-bar"></i><i class="eq-bar"></i><i class="eq-bar"></i></div>' : '') +
+          `</button>`
+        );
+      }).join('');
+    }
+  }
+
+  function selectBgmTrack(trackId, preview = true) {
+    audio.ensure();
+    const shouldPreview = preview && (game.state === 'playing' || el.screens.start.classList.contains('active') || el.screens.pause.classList.contains('active'));
+    audio.setTrack(trackId, shouldPreview);
+    settings.bgmTrack = trackId;
+    save(LS_SETTINGS, settings);
+    renderTrackSelectors();
+    const cur = audio.getCurrentTrack();
+    showToast(`🎵 ${cur.code}: ${cur.name}`);
+    if (el.bgmDropdown) el.bgmDropdown.hidden = true;
+    if (el.bgmCtrl) el.bgmCtrl.classList.remove('open');
+  }
+
+  function cycleBgmTrack() {
+    audio.ensure();
+    const cur = audio.nextTrack();
+    settings.bgmTrack = cur.id;
+    save(LS_SETTINGS, settings);
+    renderTrackSelectors();
+    showToast(`🎵 ${cur.code}: ${cur.name}`);
   }
 
   el.sfxBtn.addEventListener('click', () => {
@@ -429,9 +600,41 @@
     settings.bgm = audio.bgmOn;
     save(LS_SETTINGS, settings);
     syncSoundButtons();
-    if (audio.bgmOn && game.state === 'playing') audio.startBgm(game.level);
-    else audio.stopBgm();
+    if (audio.bgmOn) {
+      audio.ensure();
+      if (game.state === 'playing' || el.screens.start.classList.contains('active') || el.screens.pause.classList.contains('active')) {
+        audio.startBgm(game.level);
+      }
+    } else {
+      audio.stopBgm();
+    }
   });
+
+  if (el.bgmMenuBtn) {
+    el.bgmMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !el.bgmDropdown.hidden;
+      el.bgmDropdown.hidden = isOpen;
+      el.bgmCtrl.classList.toggle('open', !isOpen);
+    });
+  }
+  document.addEventListener('click', (e) => {
+    if (el.bgmCtrl && !el.bgmCtrl.contains(e.target)) {
+      if (el.bgmDropdown) el.bgmDropdown.hidden = true;
+      el.bgmCtrl.classList.remove('open');
+    }
+  });
+
+  function handleTrackClick(e) {
+    const btn = e.target.closest('[data-track]');
+    if (!btn) return;
+    const trackId = btn.dataset.track;
+    selectBgmTrack(trackId, true);
+  }
+  if (el.bgmDropdownList) el.bgmDropdownList.addEventListener('click', handleTrackClick);
+  if (el.startTrackGrid) el.startTrackGrid.addEventListener('click', handleTrackClick);
+  if (el.pauseTrackGrid) el.pauseTrackGrid.addEventListener('click', handleTrackClick);
+
   el.pauseBtn.addEventListener('click', togglePause);
   el.fullBtn.addEventListener('click', toggleFullscreen);
   el.startBtn.addEventListener('click', startGame);
@@ -451,6 +654,7 @@
     pause: togglePause,
     restart: () => { if (game.state !== 'idle') startGame(); },
     mute: () => el.sfxBtn.click(),
+    cycleBgm: cycleBgmTrack,
     fullscreen: toggleFullscreen,
     blur: pauseGame,
   });

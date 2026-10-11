@@ -67,18 +67,34 @@ export default {
 
       await ensureTable(env.DB);
 
+      // Ranking cutoff timestamp (hide data prior to this date)
+      const DEFAULT_START_DATE = '2026-10-11 14:35:00';
+      const showAll = searchParams.get('all') === 'true';
+      const customSince = searchParams.get('since');
+      const startDate = customSince || (showAll ? null : (env.RANKING_START_DATE || DEFAULT_START_DATE));
+
       // GET: Retrieve Top Rankings
       if (request.method === 'GET') {
         try {
           const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
           const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 20 : rawLimit), 100);
 
-          const { results } = await env.DB.prepare(`
+          let query = `
             SELECT id, name, score, lines, level, created_at
             FROM rankings
+          `;
+          const params = [];
+          if (startDate) {
+            query += ` WHERE created_at >= ? `;
+            params.push(startDate);
+          }
+          query += `
             ORDER BY score DESC, lines DESC, id ASC
             LIMIT ?
-          `).bind(limit).all();
+          `;
+          params.push(limit);
+
+          const { results } = await env.DB.prepare(query).bind(...params).all();
 
           return jsonResponse({
             success: true,
@@ -112,14 +128,20 @@ export default {
 
           const insertId = insertRes?.meta?.last_row_id;
 
-          // Calculate current rank of this score
+          // Calculate current rank of this score (within active period)
           let rankNumber = 1;
           try {
-            const rankQuery = await env.DB.prepare(`
+            let rankQuerySql = `
               SELECT COUNT(*) AS ahead_count
               FROM rankings
-              WHERE score > ? OR (score = ? AND lines > ?)
-            `).bind(score, score, lines).first();
+              WHERE (score > ? OR (score = ? AND lines > ?))
+            `;
+            const rankParams = [score, score, lines];
+            if (startDate) {
+              rankQuerySql += ` AND created_at >= ? `;
+              rankParams.push(startDate);
+            }
+            const rankQuery = await env.DB.prepare(rankQuerySql).bind(...rankParams).first();
             rankNumber = (rankQuery?.ahead_count || 0) + 1;
           } catch (_) {
             /* rank count is non-fatal */
