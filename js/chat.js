@@ -9,8 +9,11 @@ class ChatClient {
   constructor(audio) {
     this.audio = audio;
     this.apiUrl = typeof CHAT_API_URL !== 'undefined' ? CHAT_API_URL : '/api/chat';
-    this.lsKey = 'festival-tetris:chat:v2';
-    try { localStorage.removeItem('festival-tetris:chat:v1'); } catch (_) {}
+    this.lsKey = 'festival-tetris:chat:v3';
+    try {
+      localStorage.removeItem('festival-tetris:chat:v1');
+      localStorage.removeItem('festival-tetris:chat:v2');
+    } catch (_) {}
     this.messages = [];
     this.lastId = 0;
     this.isPolling = false;
@@ -72,15 +75,7 @@ class ChatClient {
   }
 
   getDefaultMessages() {
-    return [
-      {
-        id: 0,
-        name: '운영자',
-        message: '2026 축제 테트리스에 오신 것을 환영합니다! 🎮 멋진 기록을 세우고 응원을 남겨보세요!',
-        created_at: new Date().toISOString(),
-        isSystem: true,
-      },
-    ];
+    return [];
   }
 
   init() {
@@ -90,17 +85,12 @@ class ChatClient {
       if (Array.isArray(cached) && cached.length) {
         this.messages = cached;
         this.lastId = Math.max(0, ...cached.map((m) => m.id || 0));
-        this.renderAll();
       }
     } catch (_) {}
 
-    // 2. Set default greetings if empty
-    if (!this.messages.length) {
-      this.messages = this.getDefaultMessages();
-      this.renderAll();
-    }
+    this.renderAll();
 
-    // 3. Pre-fill nickname inputs
+    // 2. Pre-fill nickname inputs
     if (this.containers.start.nameInput) this.containers.start.nameInput.value = this.myNickname;
     if (this.containers.over.nameInput) this.containers.over.nameInput.value = this.myNickname;
 
@@ -351,6 +341,12 @@ class ChatClient {
     ['start', 'over'].forEach((key) => {
       const c = this.containers[key];
       if (!c.list) return;
+
+      if (!this.messages.length) {
+        c.list.innerHTML = '<div class="chat-empty-state">아직 등록된 메시지가 없습니다.<br>첫 번째 응원 메시지를 남겨보세요! ✨</div>';
+        if (c.countTag) c.countTag.textContent = '0개의 메시지';
+        return;
+      }
 
       const wasNearBottom = forceScroll || (
         c.list.scrollHeight - c.list.scrollTop - c.list.clientHeight < 70
