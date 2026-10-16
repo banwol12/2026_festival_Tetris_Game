@@ -428,6 +428,19 @@ kbd {
   -webkit-user-select: text;
 }
 .name-form .btn { padding: 1.2vh 2vw; }
+
+/* Shake animation for mandatory nickname validation */
+@keyframes inputShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.input-error {
+  animation: inputShake 0.4s ease-in-out !important;
+  border-color: var(--pink) !important;
+  box-shadow: 0 0 14px rgba(255, 71, 192, 0.7) !important;
+}
 /* ---- Community Layout: Ranking & Live Chat Side-by-Side ------------------- */
 .community-grid {
   display: grid;

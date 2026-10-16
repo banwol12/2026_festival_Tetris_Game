@@ -458,7 +458,15 @@
   el.nameForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (!pendingResult) return;
-    const name = (el.nameInput.value.trim() || 'PLAYER').slice(0, 10);
+    const name = el.nameInput.value.trim().slice(0, 10);
+    if (!name) {
+      el.nameInput.classList.remove('input-error');
+      void el.nameInput.offsetWidth;
+      el.nameInput.classList.add('input-error');
+      el.nameInput.focus();
+      showToast('⚠️ 랭킹에 등록할 닉네임을 입력해주세요!');
+      return;
+    }
     settings.name = name;
     save(LS_SETTINGS, settings);
     if (chat) chat.setNickname(name);
@@ -505,6 +513,7 @@
       el.toast.hidden = true;
     }, 1800);
   }
+  window.showTetrisToast = showToast;
 
   function renderTrackSelectors() {
     const tracks = audio.getTracks();

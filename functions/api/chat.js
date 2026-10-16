@@ -82,8 +82,10 @@ export async function onRequestPost(context) {
 
   try {
     const body = await request.json().catch(() => ({}));
-    let name = String(body.name || '익명').trim().slice(0, 12);
-    if (!name) name = '익명';
+    let name = String(body.name || '').trim().slice(0, 12);
+    if (!name) {
+      return jsonResponse({ success: false, error: 'Nickname is required.' }, 400);
+    }
 
     let message = String(body.message || '').trim().slice(0, 200);
     if (!message) {

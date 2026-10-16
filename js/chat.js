@@ -115,7 +115,11 @@ class ChatClient {
       c.form.addEventListener('submit', (e) => {
         e.preventDefault();
         const text = (c.textInput ? c.textInput.value : '').trim();
-        const name = (c.nameInput ? c.nameInput.value : this.myNickname).trim() || '익명';
+        const name = (c.nameInput ? c.nameInput.value : this.myNickname).trim();
+        if (!name) {
+          this.triggerNicknameRequired(key);
+          return;
+        }
         if (!text) return;
         this.sendMessage(text, name);
         if (c.textInput) {
@@ -130,7 +134,11 @@ class ChatClient {
           const btn = e.target.closest('[data-emoji]');
           if (!btn) return;
           const emoji = btn.dataset.emoji;
-          const name = (c.nameInput ? c.nameInput.value : this.myNickname).trim() || '익명';
+          const name = (c.nameInput ? c.nameInput.value : this.myNickname).trim();
+          if (!name) {
+            this.triggerNicknameRequired(key);
+            return;
+          }
           this.sendMessage(emoji, name);
         });
       }
@@ -139,6 +147,19 @@ class ChatClient {
     // 5. Fetch initial data from server
     this.fetchMessages();
     this.startPolling();
+  }
+
+  triggerNicknameRequired(key) {
+    const c = this.containers[key] || this.containers.start;
+    if (c && c.nameInput) {
+      c.nameInput.classList.remove('input-error');
+      void c.nameInput.offsetWidth;
+      c.nameInput.classList.add('input-error');
+      c.nameInput.focus();
+    }
+    if (window.showTetrisToast) {
+      window.showTetrisToast('⚠️ 닉네임을 먼저 입력해주세요! ✍️');
+    }
   }
 
   startPolling() {
@@ -215,7 +236,11 @@ class ChatClient {
   }
 
   async sendMessage(text, authorName) {
-    const name = (authorName || this.myNickname || '익명').trim().slice(0, 12) || '익명';
+    const name = (authorName || this.myNickname || '').trim().slice(0, 12);
+    if (!name) {
+      this.triggerNicknameRequired('start');
+      return;
+    }
     this.setNickname(name);
 
     // Play chime sound

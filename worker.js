@@ -121,8 +121,10 @@ export default {
       if (request.method === 'POST') {
         try {
           const body = await request.json().catch(() => ({}));
-          let name = String(body.name || 'PLAYER').trim().slice(0, 15);
-          if (!name) name = 'PLAYER';
+          let name = String(body.name || '').trim().slice(0, 15);
+          if (!name) {
+            return jsonResponse({ success: false, error: 'Nickname is required.' }, 400);
+          }
 
           const score = Math.max(0, parseInt(body.score, 10) || 0);
           const lines = Math.max(0, parseInt(body.lines, 10) || 0);
@@ -231,8 +233,10 @@ export default {
       if (request.method === 'POST') {
         try {
           const body = await request.json().catch(() => ({}));
-          let name = String(body.name || '익명').trim().slice(0, 12);
-          if (!name) name = '익명';
+          let name = String(body.name || '').trim().slice(0, 12);
+          if (!name) {
+            return jsonResponse({ success: false, error: 'Nickname is required.' }, 400);
+          }
 
           let message = String(body.message || '').trim().slice(0, 200);
           if (!message) {
