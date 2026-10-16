@@ -9,7 +9,8 @@ class ChatClient {
   constructor(audio) {
     this.audio = audio;
     this.apiUrl = typeof CHAT_API_URL !== 'undefined' ? CHAT_API_URL : '/api/chat';
-    this.lsKey = 'festival-tetris:chat:v1';
+    this.lsKey = 'festival-tetris:chat:v2';
+    try { localStorage.removeItem('festival-tetris:chat:v1'); } catch (_) {}
     this.messages = [];
     this.lastId = 0;
     this.isPolling = false;
@@ -70,6 +71,18 @@ class ChatClient {
     }
   }
 
+  getDefaultMessages() {
+    return [
+      {
+        id: 0,
+        name: '운영자',
+        message: '2026 축제 테트리스에 오신 것을 환영합니다! 🎮 멋진 기록을 세우고 응원을 남겨보세요!',
+        created_at: new Date().toISOString(),
+        isSystem: true,
+      },
+    ];
+  }
+
   init() {
     // 1. Load cached messages
     try {
@@ -83,15 +96,7 @@ class ChatClient {
 
     // 2. Set default greetings if empty
     if (!this.messages.length) {
-      this.messages = [
-        {
-          id: 0,
-          name: '운영자',
-          message: '2026 축제 테트리스에 오신 것을 환영합니다! 🎮 멋진 기록을 세우고 응원을 남겨보세요!',
-          created_at: new Date().toISOString(),
-          isSystem: true,
-        },
-      ];
+      this.messages = this.getDefaultMessages();
       this.renderAll();
     }
 
@@ -201,7 +206,15 @@ class ChatClient {
       const data = await res.json();
       if (!data.success || !Array.isArray(data.messages)) return;
 
-      if (!data.messages.length) return;
+      if (!data.messages.length) {
+        if (!incremental) {
+          this.messages = this.getDefaultMessages();
+          this.lastId = 0;
+          this.saveMessages();
+          this.renderAll(false);
+        }
+        return;
+      }
 
       if (incremental && this.lastId > 0) {
         // Append new messages, avoiding duplicates
