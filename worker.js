@@ -37,9 +37,20 @@ async function ensureTable(db) {
     await db.prepare(`
       CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC, lines DESC)
     `).run();
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `).run();
+    await db.prepare(`
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON chat_messages (created_at DESC, id DESC)
+    `).run();
     tableInitialized = true;
   } catch (err) {
-    console.error('Failed to auto-initialize rankings table:', err);
+    console.error('Failed to auto-initialize database tables:', err);
   }
 }
 
@@ -155,6 +166,99 @@ export default {
           });
         } catch (err) {
           console.error('POST /api/ranking error:', err);
+          return jsonResponse({ success: false, error: err.message }, 500);
+        }
+      }
+
+      return jsonResponse({ success: false, error: 'Method Not Allowed' }, 405);
+    }
+
+    // Chat API Routes
+    if (pathname === '/api/chat' || pathname === '/api/messages') {
+      if (!env.DB) {
+        return jsonResponse(
+          { success: false, error: 'D1 database binding "DB" is missing in environment.' },
+          500
+        );
+      }
+
+      await ensureTable(env.DB);
+
+      // GET: Retrieve Recent Chat Messages
+      if (request.method === 'GET') {
+        try {
+          const rawLimit = parseInt(searchParams.get('limit') || '50', 10);
+          const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 50 : rawLimit), 100);
+          const sinceId = parseInt(searchParams.get('since_id') || '0', 10);
+
+          let results = [];
+          if (sinceId > 0) {
+            const query = `
+              SELECT id, name, message, created_at
+              FROM chat_messages
+              WHERE id > ?
+              ORDER BY id ASC
+              LIMIT ?
+            `;
+            const res = await env.DB.prepare(query).bind(sinceId, limit).all();
+            results = res.results || [];
+          } else {
+            const query = `
+              SELECT id, name, message, created_at
+              FROM (
+                SELECT id, name, message, created_at
+                FROM chat_messages
+                ORDER BY id DESC
+                LIMIT ?
+              )
+              ORDER BY id ASC
+            `;
+            const res = await env.DB.prepare(query).bind(limit).all();
+            results = res.results || [];
+          }
+
+          return jsonResponse({
+            success: true,
+            messages: results,
+          });
+        } catch (err) {
+          console.error('GET /api/chat error:', err);
+          return jsonResponse({ success: false, error: err.message }, 500);
+        }
+      }
+
+      // POST: Send a Chat Message
+      if (request.method === 'POST') {
+        try {
+          const body = await request.json().catch(() => ({}));
+          let name = String(body.name || '익명').trim().slice(0, 12);
+          if (!name) name = '익명';
+
+          let message = String(body.message || '').trim().slice(0, 200);
+          if (!message) {
+            return jsonResponse({ success: false, error: 'Message cannot be empty.' }, 400);
+          }
+
+          const insertRes = await env.DB.prepare(`
+            INSERT INTO chat_messages (name, message)
+            VALUES (?, ?)
+          `).bind(name, message).run();
+
+          const insertId = insertRes?.meta?.last_row_id;
+
+          const createdMsg = {
+            id: insertId,
+            name,
+            message,
+            created_at: new Date().toISOString(),
+          };
+
+          return jsonResponse({
+            success: true,
+            message: createdMsg,
+          });
+        } catch (err) {
+          console.error('POST /api/chat error:', err);
           return jsonResponse({ success: false, error: err.message }, 500);
         }
       }

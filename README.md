@@ -14,6 +14,12 @@
   - 전 세계/행사장 플레이어의 실시간 점수 등록 및 TOP 20 랭킹 조회
   - **기록 달성 일시 표시**: 상대 시간("방금 전", "오늘 14:30", "10.11 12:30") 및 마우스 호버 시 상세 일시 툴팁 제공
   - 네트워크 단절 시 게임 중단 없이 `localStorage` 기반 로컬 랭킹으로 자동 폴백
+- **실시간 라이브 채팅창 (Cloudflare D1)**:
+  - 랭킹 바로 옆에 사이드 바이 사이드로 배치된 실시간 응원톡 & 소감 채팅창
+  - 원클릭 빠른 이모지(🔥, 👏, 💖, 🎮, 🚀, 😱) 반응 지원
+  - 닉네임 자동 기억 및 테트리스 랭킹 닉네임과 상호 연동
+  - 증분 폴링(Incremental Polling)을 통한 실시간 대화 동기화 및 부드러운 오토스크롤
+  - 게임 플레이 중 네트워크 대역폭 보호를 위한 지능형 폴링 일시정지/재개
 - **비주얼 & 디자인**: 검정 보드 + 밀키 핑크 도트 배경, 테트리스(4줄) 클리어 시 하트 버스트(Heart Burst) 애니메이션, Unbounded & Space Mono 서체
 - **오디오 & 멀티 BGM 선택**:
   - Web Audio 실시간 신디사이저 기반 사운드 시스템 (효과음 + BGM)
@@ -111,11 +117,14 @@ npx wrangler d1 execute digitalarts-tetris --remote --file=schema.sql
 │   ├── render.js              # Canvas 렌더러 (보드, 고스트, 홀드/넥스트 프리뷰)
 │   ├── input.js               # 키보드 입력 및 고속 DAS/ARR 처리
 │   ├── audio.js               # Web Audio 합성 효과음 및 BGM 사운드 엔진
+│   ├── chat.js                # 실시간 라이브 채팅 클라이언트 (증분 폴링, 오토스크롤, 이모지)
 │   └── main.js                # UI 상호작용, 하트 버스트, Cloudflare D1 랭킹 비동기 동기화
-├── worker.js                  # Cloudflare Worker REST API (/api/ranking)
+├── worker.js                  # Cloudflare Worker REST API (/api/ranking, /api/chat)
 ├── wrangler.toml              # Cloudflare Worker & D1 데이터베이스 바인딩 설정
-├── schema.sql                 # D1 rankings 테이블 및 인덱스 DDL
-├── functions/api/ranking.js   # Cloudflare Pages Functions 풀스택 API
+├── schema.sql                 # D1 rankings & chat_messages 테이블 및 인덱스 DDL
+├── functions/api/
+│   ├── ranking.js             # Cloudflare Pages Functions 풀스택 랭킹 API
+│   └── chat.js                # Cloudflare Pages Functions 풀스택 채팅 API
 ├── .cursor/mcp.json           # Cursor IDE용 Cloudflare Remote MCP 설정
 ├── .vscode/mcp.json           # VSCode용 Cloudflare Remote MCP 설정
 └── .agents/skills/            # Cloudflare 공식 Agent Skills (Wrangler, D1 등)

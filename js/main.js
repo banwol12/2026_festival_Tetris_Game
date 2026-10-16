@@ -32,6 +32,7 @@
   audio.bgmOn = !!settings.bgm;
   if (settings.bgmTrack) audio.setTrack(settings.bgmTrack);
   const renderer = new Renderer(game, $('#board'), $('#hold'), $('#next'));
+  const chat = typeof ChatClient !== 'undefined' ? new ChatClient(audio) : null;
 
   const el = {
     arena: $('#arena'),
@@ -337,6 +338,7 @@
     el.pauseBtn.textContent = '⏸';
     pendingResult = null;
     el.nameForm.hidden = true;
+    if (chat) chat.pausePolling();
   }
 
   function pauseGame() {
@@ -367,6 +369,7 @@
     fetchRankings().then(() => renderRank(el.startBoard, MAX_RANK));
     showScreen('start');
     el.pauseBtn.textContent = '⏸';
+    if (chat) chat.resumePolling();
   }
 
   function toggleFullscreen() {
@@ -424,6 +427,7 @@
     bump(el.level);
   });
   game.on('gameover', async (r) => {
+    if (chat) chat.resumePolling();
     audio.stopBgm();
     audio.gameOver();
     el.overScore.textContent = fmt(r.score);
@@ -435,7 +439,7 @@
     renderRank(el.overBoard, MAX_RANK);
     showScreen('over');
     if (q) {
-      el.nameInput.value = settings.name || '';
+      el.nameInput.value = (chat && chat.myNickname) || settings.name || '';
       setTimeout(() => el.nameInput.focus(), 50);
     }
 
@@ -445,7 +449,7 @@
     if (!pendingResult && q) {
       pendingResult = r;
       el.nameForm.hidden = false;
-      el.nameInput.value = settings.name || '';
+      el.nameInput.value = (chat && chat.myNickname) || settings.name || '';
     }
     renderRank(el.overBoard, MAX_RANK);
   });
@@ -457,6 +461,7 @@
     const name = (el.nameInput.value.trim() || 'PLAYER').slice(0, 10);
     settings.name = name;
     save(LS_SETTINGS, settings);
+    if (chat) chat.setNickname(name);
     const entry = {
       name,
       score: pendingResult.score,

@@ -101,6 +101,8 @@ function gravityMs(level) {
   return Math.max(Math.pow(0.8 - l * 0.007, l) * 1000, 8);
 }
 
-// Online ranking API endpoint (defaults to deployed Cloudflare Worker, can be overridden via window.TETRIS_API_URL)
-const RANKING_API_URL = (typeof window !== 'undefined' && window.TETRIS_API_URL) || 'https://digitalarts-tetris.hjahn0523.workers.dev/api/ranking';
+// Online API endpoints (defaults to deployed Cloudflare Worker, can be overridden via window.TETRIS_API_URL / window.TETRIS_CHAT_API_URL)
+const DEFAULT_API_BASE = 'https://digitalarts-tetris.hjahn0523.workers.dev';
+const RANKING_API_URL = (typeof window !== 'undefined' && window.TETRIS_API_URL) || `${DEFAULT_API_BASE}/api/ranking`;
+const CHAT_API_URL = (typeof window !== 'undefined' && window.TETRIS_CHAT_API_URL) || `${DEFAULT_API_BASE}/api/chat`;
 

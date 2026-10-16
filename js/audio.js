@@ -218,6 +218,10 @@ class AudioEngine {
       this.tone(f, { type: 'sawtooth', dur: 0.28, vol: 0.16, delay: i * 0.18 })
     );
   }
+  chatSend() {
+    this.tone(587, { type: 'sine', dur: 0.05, vol: 0.1 });
+    this.tone(880, { type: 'sine', dur: 0.08, vol: 0.12, delay: 0.05 });
+  }
 
   // ---- BGM sequencer & track selection --------------------------------------
   getTracks() {
