@@ -38,8 +38,11 @@ class Input {
       const g = this.game;
       const a = this.actions;
       switch (k) {
-        case 'ArrowLeft': this.press(-1); break;
-        case 'ArrowRight': this.press(1); break;
+        case 'ArrowLeft':
+        case 'ArrowRight':
+          if (g.state === 'idle' && a.toggleMode) a.toggleMode();
+          else this.press(k === 'ArrowLeft' ? -1 : 1);
+          break;
         case 'ArrowDown': g.setSoftDrop(true); break;
         case 'ArrowUp': case 'KeyX': g.rotate(1); break;
         case 'KeyZ': case 'ControlLeft': case 'ControlRight': g.rotate(-1); break;

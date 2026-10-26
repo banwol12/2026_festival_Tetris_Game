@@ -89,7 +89,12 @@
         <span class="logo-name">Digitalarts</span>
         <span class="logo-game">Tetris</span>
       </div>
-      <p class="tagline">조각이 나오자마자 바닥에 꽂히는 초고속 테트리스<br />점수가 오를수록 고정 시간이 짧아집니다</p>
+      <div class="mode-picker" role="radiogroup" aria-label="게임 모드">
+        <button class="mode-btn" type="button" role="radio" data-mode="classic">클래식</button>
+        <span class="mode-hint" aria-hidden="true"><kbd>←</kbd><kbd>→</kbd></span>
+        <button class="mode-btn" type="button" role="radio" data-mode="spin"><svg class="mode-ico" viewBox="0 0 30 30" aria-hidden="true"><rect x="0" y="10" width="10" height="10"/><rect x="10" y="10" width="10" height="10"/><rect x="20" y="10" width="10" height="10"/><rect x="10" y="0" width="10" height="10"/></svg>빙글빙글</button>
+      </div>
+      <p class="tagline" id="mode-tagline"></p>
       
       <div class="music-select-box">
         <div class="music-select-header">
@@ -102,8 +107,8 @@
       <button id="btn-start" class="btn primary huge" type="button">START <kbd>Enter</kbd></button>
       <p class="keys">
         <span><kbd>←</kbd><kbd>→</kbd> 이동</span>
-        <span><kbd>↑</kbd> 회전</span>
-        <span><kbd>Z</kbd> 반대 회전</span>
+        <span class="k-rot"><kbd>↑</kbd> 회전</span>
+        <span class="k-rot"><kbd>Z</kbd> 반대 회전</span>
         <span><kbd>Space</kbd> 고정</span>
         <span><kbd>C</kbd> 홀드</span>
         <span><kbd>B</kbd> BGM 변경</span>
@@ -116,7 +121,7 @@
           <div class="panel-header">
             <div class="panel-title-wrap">
               <span class="panel-icon">🏆</span>
-              <h3>TOP 20 RANKING</h3>
+              <h3 class="rank-title">TOP 20 RANKING</h3>
             </div>
             <span class="live-pill">실시간 순위</span>
           </div>
@@ -196,7 +201,7 @@
           <div class="panel-header">
             <div class="panel-title-wrap">
               <span class="panel-icon">🏆</span>
-              <h3>RANKING (TOP 20)</h3>
+              <h3 class="rank-title">TOP 20 RANKING</h3>
             </div>
             <span class="live-pill">실시간 순위</span>
           </div>

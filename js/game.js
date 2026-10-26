@@ -12,6 +12,7 @@ class Game {
   constructor() {
     this.listeners = {};
     this.startLevel = 1;
+    this.mode = 'classic'; // classic | spin
     this.reset();
   }
 
@@ -38,6 +39,7 @@ class Game {
     this.b2b = false;
     this.state = 'idle'; // idle | playing | paused | over
     this.gravityAcc = 0;
+    this.spinAcc = 0;
     this.lockTimer = 0;
     this.lockResets = 0;
     this.lowestY = -1;
@@ -48,8 +50,9 @@ class Game {
     while (this.queue.length < CFG.NEXT_COUNT) this.queue.push(this.nextFromBag());
   }
 
-  start(level) {
+  start(level, mode) {
     this.startLevel = Math.max(1, level || 1);
+    this.mode = mode === 'spin' ? 'spin' : 'classic';
     this.reset();
     this.state = 'playing';
     this.spawn();
@@ -90,6 +93,7 @@ class Game {
   spawnPiece(p) {
     this.piece = p;
     this.gravityAcc = 0;
+    this.spinAcc = 0;
     this.lockTimer = 0;
     this.lockResets = 0;
     this.lowestY = p.y;
@@ -165,12 +169,27 @@ class Game {
   }
 
   rotate(dir) {
-    if (!this.active) return false;
+    // Spin mode: the piece turns by itself, the player can't rotate it.
+    if (!this.active || this.mode === 'spin') return false;
+    if (!this.turn(dir)) return false;
+    if (this.piece.type !== 'O') this.onMoved(true);
+    this.emit('rotate');
+    return true;
+  }
+
+  // Spin mode beat: one clockwise quarter turn. Doesn't reset the lock timer
+  // and never counts as a T-spin, so it can't be used to stall or farm points.
+  autoSpin() {
+    if (!this.active || !this.turn(1)) return false; // blocked: try next beat
+    this.lastRotated = false;
+    this.emit('autospin', this.piece);
+    return true;
+  }
+
+  // SRS rotation with wall kicks (geometry only). True if the piece turned.
+  turn(dir) {
     const p = this.piece;
-    if (p.type === 'O') {
-      this.emit('rotate');
-      return true;
-    }
+    if (p.type === 'O') return true;
     const from = p.rot;
     const to = (p.rot + dir + 4) % 4;
     const m = dir === 1 ? rotateCW(p.matrix) : rotateCCW(p.matrix);
@@ -185,8 +204,6 @@ class Game {
         p.y = ny;
         p.rot = to;
         this.lastKickIndex = i;
-        this.onMoved(true);
-        this.emit('rotate');
         return true;
       }
     }
@@ -262,7 +279,8 @@ class Game {
     if (!this.piece) return;
 
     const p = this.piece;
-    if (CFG.INSTANT_GRAVITY) {
+    const spin = this.mode === 'spin';
+    if (CFG.INSTANT_GRAVITY && !spin) {
       // 20G: the piece always sits on the floor; only the lock delay
       // (with move resets) gives the player time to slide and rotate.
       let fell = false;
@@ -275,7 +293,7 @@ class Game {
         this.checkLowest();
       }
     } else if (!this.isGrounded()) {
-      const g = gravityMs(this.level);
+      const g = spin ? spinFallMs(this.level) : gravityMs(this.level);
       const interval = this.softDrop ? Math.min(CFG.SOFT_DROP_MS, g) : g;
       this.gravityAcc += dt;
       while (this.gravityAcc >= interval) {
@@ -288,6 +306,15 @@ class Game {
         if (this.softDrop) this.score += SCORE.SOFT_DROP;
         this.lastRotated = false;
         this.checkLowest();
+      }
+    }
+
+    if (spin) {
+      this.spinAcc += dt;
+      const beat = spinTurnMs(this.level);
+      if (this.spinAcc >= beat) {
+        this.spinAcc -= beat;
+        this.autoSpin();
       }
     }
 

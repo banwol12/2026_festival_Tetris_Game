@@ -17,7 +17,14 @@ const CFG = {
   MAX_SPEED_LEVEL: 15, // gravity stops accelerating here (timed mode only)
   POINTS_PER_LEVEL: 1000, // level n needs 1000 * (n-1) * n / 2 points
   MAX_LEVEL: 20,
-  INSTANT_GRAVITY: true, // 20G: every piece drops to the floor immediately
+  INSTANT_GRAVITY: true, // 20G: every piece drops to the floor immediately (classic mode)
+  // Spin mode: pieces turn clockwise on their own while falling.
+  SPIN_TURN_MS: 550,   // one quarter turn every … ms (level 1)
+  SPIN_TURN_STEP: 25,
+  SPIN_TURN_MIN: 250,
+  SPIN_FALL_MS: 320,   // ms per row of gravity (level 1)
+  SPIN_FALL_STEP: 20,
+  SPIN_FALL_MIN: 80,
 };
 
 const TYPES = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
@@ -93,6 +100,14 @@ function levelForScore(score) {
 // Lock delay shrinks as the level rises: this is what makes 20G harder.
 function lockDelayMs(level) {
   return Math.max(CFG.LOCK_MIN, CFG.LOCK_DELAY - (level - 1) * CFG.LOCK_STEP);
+}
+
+// Spin mode: the turning beat and the fall speed both tighten with level.
+function spinTurnMs(level) {
+  return Math.max(CFG.SPIN_TURN_MIN, CFG.SPIN_TURN_MS - (level - 1) * CFG.SPIN_TURN_STEP);
+}
+function spinFallMs(level) {
+  return Math.max(CFG.SPIN_FALL_MIN, CFG.SPIN_FALL_MS - (level - 1) * CFG.SPIN_FALL_STEP);
 }
 
 // Milliseconds per row of gravity for a given level (Tetris guideline curve).

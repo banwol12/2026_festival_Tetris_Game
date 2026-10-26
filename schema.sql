@@ -6,10 +6,12 @@ CREATE TABLE IF NOT EXISTS rankings (
   score INTEGER NOT NULL,
   lines INTEGER NOT NULL,
   level INTEGER NOT NULL,
+  mode TEXT NOT NULL DEFAULT 'classic',
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC, lines DESC);
+CREATE INDEX IF NOT EXISTS idx_rankings_mode_score ON rankings (mode, score DESC, lines DESC);
 
 -- Cloudflare D1 Schema for Live Chat Messages
 CREATE TABLE IF NOT EXISTS chat_messages (

@@ -20,6 +20,8 @@ function jsonResponse(data, status = 200) {
   });
 }
 
+const RANKING_MODES = ['classic', 'spin'];
+
 let tableInitialized = false;
 async function ensureTable(db) {
   if (tableInitialized) return;
@@ -31,11 +33,20 @@ async function ensureTable(db) {
         score INTEGER NOT NULL,
         lines INTEGER NOT NULL,
         level INTEGER NOT NULL,
+        mode TEXT NOT NULL DEFAULT 'classic',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `).run();
+    // Tables created before game modes existed get the column added once;
+    // on newer tables this fails with "duplicate column", which is fine.
+    try {
+      await db.prepare(`ALTER TABLE rankings ADD COLUMN mode TEXT NOT NULL DEFAULT 'classic'`).run();
+    } catch (_) { /* column already there */ }
     await db.prepare(`
       CREATE INDEX IF NOT EXISTS idx_rankings_score ON rankings (score DESC, lines DESC)
+    `).run();
+    await db.prepare(`
+      CREATE INDEX IF NOT EXISTS idx_rankings_mode_score ON rankings (mode, score DESC, lines DESC)
     `).run();
     await db.prepare(`
       CREATE TABLE IF NOT EXISTS chat_messages (
@@ -84,19 +95,24 @@ export default {
       const customSince = searchParams.get('since');
       const startDate = customSince || (showAll ? null : (env.RANKING_START_DATE || DEFAULT_START_DATE));
 
+      // Game mode: unknown values fall back to classic.
+      const pickMode = (v) => (RANKING_MODES.includes(v) ? v : 'classic');
+
       // GET: Retrieve Top Rankings
       if (request.method === 'GET') {
         try {
           const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
           const limit = Math.min(Math.max(1, isNaN(rawLimit) ? 20 : rawLimit), 100);
 
+          const mode = pickMode(searchParams.get('mode'));
           let query = `
-            SELECT id, name, score, lines, level, created_at
+            SELECT id, name, score, lines, level, mode, created_at
             FROM rankings
+            WHERE mode = ?
           `;
-          const params = [];
+          const params = [mode];
           if (startDate) {
-            query += ` WHERE created_at >= ? `;
+            query += ` AND created_at >= ? `;
             params.push(startDate);
           }
           query += `
@@ -109,6 +125,7 @@ export default {
 
           return jsonResponse({
             success: true,
+            mode,
             rankings: results || [],
           });
         } catch (err) {
@@ -129,15 +146,16 @@ export default {
           const score = Math.max(0, parseInt(body.score, 10) || 0);
           const lines = Math.max(0, parseInt(body.lines, 10) || 0);
           const level = Math.max(1, parseInt(body.level, 10) || 1);
+          const mode = pickMode(body.mode);
 
           if (score === 0) {
             return jsonResponse({ success: false, error: 'Score must be greater than 0' }, 400);
           }
 
           const insertRes = await env.DB.prepare(`
-            INSERT INTO rankings (name, score, lines, level)
-            VALUES (?, ?, ?, ?)
-          `).bind(name, score, lines, level).run();
+            INSERT INTO rankings (name, score, lines, level, mode)
+            VALUES (?, ?, ?, ?, ?)
+          `).bind(name, score, lines, level, mode).run();
 
           const insertId = insertRes?.meta?.last_row_id;
 
@@ -147,9 +165,9 @@ export default {
             let rankQuerySql = `
               SELECT COUNT(*) AS ahead_count
               FROM rankings
-              WHERE (score > ? OR (score = ? AND lines > ?))
+              WHERE mode = ? AND (score > ? OR (score = ? AND lines > ?))
             `;
-            const rankParams = [score, score, lines];
+            const rankParams = [mode, score, score, lines];
             if (startDate) {
               rankQuerySql += ` AND created_at >= ? `;
               rankParams.push(startDate);
@@ -164,7 +182,8 @@ export default {
             success: true,
             id: insertId,
             rank: rankNumber,
-            entry: { name, score, lines, level },
+            mode,
+            entry: { name, score, lines, level, mode },
           });
         } catch (err) {
           console.error('POST /api/ranking error:', err);

@@ -22,8 +22,24 @@
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
   ));
 
-  const settings = Object.assign({ sfx: true, bgm: true, bgmTrack: 'korobeiniki', name: '' }, load(LS_SETTINGS, {}));
-  let ranking = load(LS_RANK, []);
+  const settings = Object.assign({ sfx: true, bgm: true, bgmTrack: 'korobeiniki', name: '', mode: 'classic' }, load(LS_SETTINGS, {}));
+  const MODES = {
+    classic: {
+      title: 'Digitalarts Tetris',
+      rank: 'TOP 20 RANKING',
+      tagline: '조각이 나오자마자 바닥에 꽂히는 초고속 테트리스<br />점수가 오를수록 고정 시간이 짧아집니다',
+    },
+    spin: {
+      title: 'Digitalarts Tetris · 빙글빙글',
+      rank: 'TOP 20 · 빙글빙글',
+      tagline: '조각이 혼자서 시계방향으로 빙글빙글 돌아갑니다<br />원하는 모양이 된 순간 <kbd>Space</kbd>로 꽂으세요',
+    },
+  };
+  let mode = settings.mode === 'spin' ? 'spin' : 'classic';
+  // Each mode keeps its own ranking; classic keeps the original storage key.
+  const rankKey = () => (mode === 'classic' ? LS_RANK : `${LS_RANK}:${mode}`);
+  let ranking = load(rankKey(), []);
+  let serverModes = false; // true once the ranking API answers with a mode
   let pendingResult = null;
 
   const game = new Game();
@@ -72,6 +88,8 @@
     toast: $('#toast'),
     pauseBtn: $('#btn-pause'),
     fullBtn: $('#btn-full'),
+    modeTagline: $('#mode-tagline'),
+    titleName: $('.title-name'),
   };
 
   // ---- layout ---------------------------------------------------------------
@@ -208,21 +226,26 @@
     ranking.push(entry);
     ranking.sort((a, b) => b.score - a.score || b.lines - a.lines);
     ranking = ranking.slice(0, MAX_RANK);
-    save(LS_RANK, ranking);
+    save(rankKey(), ranking);
     return ranking.indexOf(entry);
   }
 
   async function fetchRankings() {
     const apiUrl = typeof RANKING_API_URL !== 'undefined' ? RANKING_API_URL : '/api/ranking';
+    const m = mode;
     try {
-      const res = await fetch(`${apiUrl}?limit=${MAX_RANK}`, {
+      const res = await fetch(`${apiUrl}?limit=${MAX_RANK}&mode=${m}`, {
         headers: { 'Accept': 'application/json' },
       });
       if (res.ok) {
         const data = await res.json();
+        if (m !== mode) return ranking; // mode changed while loading
         if (data.success && Array.isArray(data.rankings)) {
+          if (data.mode) serverModes = true;
+          // A server without modes ignores ?mode and sends classic scores.
+          if (m !== 'classic' && data.mode !== m) return ranking;
           ranking = data.rankings;
-          save(LS_RANK, ranking);
+          save(rankKey(), ranking);
           return ranking;
         }
       }
@@ -234,6 +257,9 @@
 
   async function submitScore(entry) {
     const localIdx = addRank(entry);
+    // Until the server knows about modes, keep spin scores local so they
+    // don't land on the classic board.
+    if (mode !== 'classic' && !serverModes) return localIdx;
     const apiUrl = typeof RANKING_API_URL !== 'undefined' ? RANKING_API_URL : '/api/ranking';
     try {
       const res = await fetch(apiUrl, {
@@ -332,7 +358,7 @@
   function startGame() {
     audio.ensure();
     audio.resetBgm();
-    game.start(1);
+    game.start(1, mode);
     showScreen(null);
     audio.startBgm(game.level);
     el.pauseBtn.textContent = '⏸';
@@ -370,6 +396,26 @@
     showScreen('start');
     el.pauseBtn.textContent = '⏸';
     if (chat) chat.resumePolling();
+  }
+
+  function setMode(next) {
+    mode = next === 'spin' ? 'spin' : 'classic';
+    settings.mode = mode;
+    save(LS_SETTINGS, settings);
+    const info = MODES[mode];
+    document.body.dataset.mode = mode;
+    document.querySelectorAll('.mode-btn').forEach((b) => {
+      const on = b.dataset.mode === mode;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-checked', String(on));
+    });
+    el.modeTagline.innerHTML = info.tagline;
+    el.titleName.textContent = info.title;
+    document.querySelectorAll('.rank-title').forEach((h) => { h.textContent = info.rank; });
+    ranking = load(rankKey(), []);
+    renderRank(el.startBoard, MAX_RANK);
+    hud.best = -1;
+    fetchRankings().then(() => renderRank(el.startBoard, MAX_RANK));
   }
 
   function toggleFullscreen() {
@@ -475,6 +521,7 @@
       score: pendingResult.score,
       lines: pendingResult.lines,
       level: pendingResult.level,
+      mode,
       date: new Date().toISOString(),
       created_at: new Date().toISOString(),
     };
@@ -656,6 +703,9 @@
   el.restartBtn.addEventListener('click', startGame);
   el.againBtn.addEventListener('click', startGame);
   el.menuBtn.addEventListener('click', toMenu);
+  document.querySelectorAll('.mode-btn').forEach((b) => {
+    b.addEventListener('click', () => setMode(b.dataset.mode));
+  });
 
   // Keep Space/Enter from re-triggering the last clicked button.
   document.addEventListener('click', (e) => {
@@ -670,6 +720,7 @@
     mute: () => el.sfxBtn.click(),
     cycleBgm: cycleBgmTrack,
     fullscreen: toggleFullscreen,
+    toggleMode: () => setMode(mode === 'spin' ? 'classic' : 'spin'),
     blur: pauseGame,
   });
 
@@ -692,12 +743,7 @@
 
   // ---- init -----------------------------------------------------------------
   syncSoundButtons();
-  renderRank(el.startBoard, MAX_RANK);
-  fetchRankings().then(() => {
-    renderRank(el.startBoard, MAX_RANK);
-    hud.best = -1;
-    updateHud();
-  });
+  setMode(mode);
   showScreen('start');
   resize();
   requestAnimationFrame(frame);

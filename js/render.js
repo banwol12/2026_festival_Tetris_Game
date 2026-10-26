@@ -3,6 +3,8 @@
 class Renderer {
   constructor(game, boardCanvas, holdCanvas, nextCanvas) {
     this.game = game;
+    this.spinAt = -Infinity; // time of the last auto turn (spin mode tween)
+    game.on('autospin', () => { this.spinAt = performance.now(); });
     this.canvas = boardCanvas;
     this.ctx = boardCanvas.getContext('2d');
     this.holdCanvas = holdCanvas;
@@ -124,7 +126,19 @@ class Renderer {
       if (gy !== p.y) this.drawPiece(ctx, p.matrix, p.x, gy, s, p.type, true);
       const grounded = gy === p.y;
       const alpha = grounded ? 1 - 0.35 * Math.min(1, g.lockTimer / g.lockDelay) : 1;
+      // Spin mode: ease the last quarter turn in so the piece visibly spins.
+      const k = (performance.now() - this.spinAt) / 120;
+      if (k < 1) {
+        const half = p.matrix.length / 2;
+        const cx = (p.x + half) * s;
+        const cy = (p.y - CFG.HIDDEN + half) * s;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(-(Math.PI / 2) * (1 - k) * (1 - k));
+        ctx.translate(-cx, -cy);
+      }
       this.drawPiece(ctx, p.matrix, p.x, p.y, s, p.type, false, alpha);
+      if (k < 1) ctx.restore();
     }
   }
 
